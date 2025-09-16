@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   Plus,
@@ -208,7 +208,6 @@ function LoanMarketplace({ currentUserId, filters }: { currentUserId: string, fi
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredRequests.map((request) => {
                 const risk = getRiskLevel(request.trustScore)
-                const repaymentDate = new Date(request.repaymentDate)
                 const requestDate = new Date(request.requestDate)
                 const daysAgo = Math.floor((Date.now() - requestDate.getTime()) / (1000 * 60 * 60 * 24))
 

@@ -9,8 +9,13 @@ const mockUsers = [
     lastName: 'Doe',
     email: 'demo@nolojia.com',
     phone: '+254712345678',
+    nationalId: '12345678',
     userCode: 'DEMO1234',
+    trustScore: 4.8,
     isVerified: true,
+    isBlacklisted: false,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date(),
     wallet: { balance: 50000 }
   }
 ]
@@ -49,8 +54,13 @@ export const authService = {
           lastName: data.lastName,
           email: data.email,
           phone: data.phone,
+          nationalId: data.nationalId,
           userCode: 'USR' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+          trustScore: 3.0,
           isVerified: false,
+          isBlacklisted: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
           wallet: { balance: 0 }
         }
 
@@ -67,7 +77,7 @@ export const authService = {
 
   async refreshToken(): Promise<AuthResponse> {
     // Mock refresh token - in real app, validate and refresh with backend
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       setTimeout(() => {
         resolve({
           user: mockUsers[0],
@@ -78,7 +88,7 @@ export const authService = {
     })
   },
 
-  async verifyKYC(nationalId: string, kraPin?: string): Promise<{ verified: boolean }> {
+  async verifyKYC(): Promise<{ verified: boolean }> {
     // Mock KYC verification
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -96,7 +106,7 @@ export const authService = {
     })
   },
 
-  async forgotPassword(email: string): Promise<{ message: string }> {
+  async forgotPassword(): Promise<{ message: string }> {
     // Mock password reset
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -105,7 +115,7 @@ export const authService = {
     })
   },
 
-  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+  async resetPassword(): Promise<{ message: string }> {
     // Mock password reset
     return new Promise((resolve) => {
       setTimeout(() => {
