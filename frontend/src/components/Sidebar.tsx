@@ -10,11 +10,13 @@ import {
   HeadphonesIcon,
   Lock,
   Coins,
+  Plus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navigation = [
   { name: 'Dashboard', href: '/app/dashboard', icon: Home },
+  { name: 'Top Up Wallet', href: '/app/topup', icon: Plus },
   { name: 'Send Money', href: '/app/send', icon: Send },
   { name: 'Receive Money', href: '/app/receive', icon: Download },
   { name: 'Escrow', href: '/app/escrow', icon: Lock },

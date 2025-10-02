@@ -2,37 +2,64 @@ import { AuthResponse, LoginRequest, RegisterRequest } from '@/types'
 // import { apiClient } from './apiClient'
 
 // Mock users database (in real app, this would be handled by backend)
-const mockUsers = [
-  {
-    id: 'u1',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'demo@nolojia.com',
-    phone: '+254712345678',
-    nationalId: '12345678',
-    userCode: 'DEMO1234',
-    trustScore: 4.8,
-    isVerified: true,
-    isBlacklisted: false,
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date(),
-    wallet: { balance: 50000 }
+// Load existing users from localStorage or start with default demo user
+const loadUsers = () => {
+  const stored = localStorage.getItem('nolojia-users')
+  if (stored) {
+    return JSON.parse(stored).map((user: any) => ({
+      ...user,
+      createdAt: new Date(user.createdAt),
+      updatedAt: new Date(user.updatedAt)
+    }))
   }
-]
+  return [
+    {
+      id: 'u1',
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'demo@nolojia.com',
+      phone: '+254712345678',
+      nationalId: '12345678',
+      userCode: 'DEMO1234',
+      trustScore: 4.8,
+      isVerified: true,
+      isBlacklisted: false,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date(),
+      wallet: { balance: 50000 },
+      password: 'password' // Add password for authentication
+    }
+  ]
+}
+
+const mockUsers = loadUsers()
+
+// Save users to localStorage
+const saveUsers = () => {
+  localStorage.setItem('nolojia-users', JSON.stringify(mockUsers))
+}
 
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     // Mock authentication - in real app, validate with backend
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        if (credentials.email === 'demo@nolojia.com' && credentials.password === 'password') {
+        // Find user by email or userCode
+        const user = mockUsers.find(u =>
+          (u.email === credentials.email || u.userCode === credentials.email) &&
+          (u as any).password === credentials.password
+        )
+
+        if (user) {
+          // Remove password from response
+          const { password, ...userWithoutPassword } = user as any
           resolve({
-            user: mockUsers[0],
+            user: userWithoutPassword,
             token: 'mock-jwt-token-' + Date.now(),
             refreshToken: 'mock-refresh-token-' + Date.now()
           })
         } else {
-          reject(new Error('Invalid credentials'))
+          reject(new Error('Invalid email/user code or password'))
         }
       }, 1000) // Simulate network delay
     })
@@ -61,13 +88,17 @@ export const authService = {
           isBlacklisted: false,
           createdAt: new Date(),
           updatedAt: new Date(),
-          wallet: { balance: 0 }
+          wallet: { balance: 0 },
+          password: data.password // Store password for authentication
         }
 
         mockUsers.push(newUser)
+        saveUsers() // Persist to localStorage
 
+        // Remove password from response
+        const { password, ...userWithoutPassword } = newUser
         resolve({
-          user: newUser,
+          user: userWithoutPassword,
           token: 'mock-jwt-token-' + Date.now(),
           refreshToken: 'mock-refresh-token-' + Date.now()
         })

@@ -15,6 +15,9 @@ import { EscrowModule } from './modules/escrow/escrow.module';
 import { FraudModule } from './modules/fraud/fraud.module';
 import { ReceiptsModule } from './modules/receipts/receipts.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
+import { TopUpModule } from './modules/topup/topup.module';
+import { SmsModule } from './modules/sms/sms.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -31,6 +34,7 @@ import { PayrollModule } from './modules/payroll/payroll.module';
     JwtModule.registerAsync(jwtConfig),
 
     // Feature modules
+    EmailModule,
     AuthModule,
     WalletModule,
     TransactionsModule,
@@ -38,6 +42,8 @@ import { PayrollModule } from './modules/payroll/payroll.module';
     FraudModule,
     ReceiptsModule,
     PayrollModule,
+    TopUpModule,
+    SmsModule,
   ],
 })
 export class AppModule {}

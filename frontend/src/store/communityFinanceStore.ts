@@ -60,6 +60,9 @@ export interface LenderOffering {
   lenderId: string
   lenderName: string
   amount: number
+  minAmount?: number // for flexible lending
+  maxAmount?: number // for flexible lending
+  lendingType?: 'fixed' | 'flexible'
   interestRate: number
   duration: number // in days
   penalties: {
@@ -121,7 +124,7 @@ interface CommunityFinanceStore {
   createLenderOffering: (offering: Omit<LenderOffering, 'id' | 'createdAt' | 'isEditable' | 'status'>) => void
   updateLenderOffering: (offeringId: string, updates: Partial<LenderOffering>) => void
   deleteLenderOffering: (offeringId: string) => void
-  takeLenderOffering: (offeringId: string, borrowerId: string, borrowerName: string, purpose: string) => void
+  takeLenderOffering: (offeringId: string, borrowerId: string, borrowerName: string, purpose: string, customAmount?: number) => void
 
   // Wallet integration
   getWalletBalance: (userId: string) => number
@@ -273,6 +276,7 @@ const initialLenderOfferings: LenderOffering[] = [
     lenderId: 'u2',
     lenderName: 'Jane Smith',
     amount: 50000,
+    lendingType: 'fixed',
     interestRate: 12,
     duration: 45,
     penalties: {
@@ -289,6 +293,7 @@ const initialLenderOfferings: LenderOffering[] = [
     lenderId: 'u3',
     lenderName: 'Mike Johnson',
     amount: 25000,
+    lendingType: 'fixed',
     interestRate: 15,
     duration: 30,
     penalties: {
@@ -298,6 +303,25 @@ const initialLenderOfferings: LenderOffering[] = [
     additionalTerms: 'Quick approval for borrowers with trust score above 4.0. Business purposes preferred.',
     status: 'available',
     createdAt: '2024-01-19',
+    isEditable: true
+  },
+  {
+    id: 'lo3',
+    lenderId: 'u4',
+    lenderName: 'Sarah Wilson',
+    amount: 0, // Not used for flexible lending
+    minAmount: 5000,
+    maxAmount: 75000,
+    lendingType: 'flexible',
+    interestRate: 10,
+    duration: 60,
+    penalties: {
+      lateFeePercentage: 3,
+      gracePeriodDays: 5
+    },
+    additionalTerms: 'Flexible lending option. Borrower can choose amount between min and max. Good for various needs.',
+    status: 'available',
+    createdAt: '2024-01-20',
     isEditable: true
   }
 ]
@@ -485,13 +509,16 @@ export const useCommunityFinanceStore = create<CommunityFinanceStore>()(
         }))
       },
 
-      takeLenderOffering: (offeringId, borrowerId, borrowerName, purpose) => {
+      takeLenderOffering: (offeringId, borrowerId, borrowerName, purpose, customAmount?) => {
         const offering = get().lenderOfferings.find(o => o.id === offeringId)
         if (!offering) return
 
+        // For flexible offerings, use custom amount; for fixed, use offering amount
+        const loanAmount = customAmount && offering.lendingType === 'flexible' ? customAmount : offering.amount
+
         const repaymentDate = new Date()
         repaymentDate.setDate(repaymentDate.getDate() + offering.duration)
-        const repaymentAmount = offering.amount * (1 + offering.interestRate / 100)
+        const repaymentAmount = loanAmount * (1 + offering.interestRate / 100)
 
         const newLoan: Loan = {
           id: Math.random().toString(36).substring(7),
@@ -500,7 +527,7 @@ export const useCommunityFinanceStore = create<CommunityFinanceStore>()(
           borrowerName,
           lenderId: offering.lenderId,
           lenderName: offering.lenderName,
-          amount: offering.amount,
+          amount: loanAmount,
           interestRate: offering.interestRate,
           repaymentAmount,
           repaymentDate: repaymentDate.toISOString(),

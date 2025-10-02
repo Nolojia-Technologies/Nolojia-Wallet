@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Bell,
   User,
@@ -19,8 +19,11 @@ import {
   Eye,
   EyeOff,
   Coins,
+  Moon,
+  Sun,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { useTheme } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -48,7 +51,9 @@ const navigation = [
 
 export function Header() {
   const { user, logout } = useAuthStore()
+  const { theme, toggleTheme } = useTheme()
   const location = useLocation()
+  const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
 
@@ -68,7 +73,11 @@ export function Header() {
   }
 
   const handleLogout = () => {
+    // Clear any local storage items
+    localStorage.removeItem('balanceVisible')
+    // Logout and navigate to login page
     logout()
+    navigate('/login')
   }
 
   // Mock user data for demo purposes when no user is logged in
@@ -84,7 +93,7 @@ export function Header() {
   const userInitials = `${displayUser.firstName[0]}${displayUser.lastName[0]}`
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 transition-colors">
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo and Brand */}
@@ -93,7 +102,7 @@ export function Header() {
               <div className="bg-kenya-red p-2 rounded-lg">
                 <Wallet className="h-6 w-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">
+              <span className="text-xl font-bold text-gray-900 dark:text-white">
                 Nolojia Wallet
               </span>
             </Link>
@@ -103,9 +112,9 @@ export function Header() {
           {/* Right Section */}
           <div className="flex items-center space-x-4">
             {/* Balance Display (Desktop) */}
-            <div className="hidden md:flex bg-gray-100 rounded-lg px-3 py-2 items-center">
-              <span className="text-sm text-gray-600">Balance:</span>
-              <span className="ml-2 font-semibold text-lg">
+            <div className="hidden md:flex bg-muted rounded-lg px-3 py-2 items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-300">Balance:</span>
+              <span className="ml-2 font-semibold text-lg dark:text-white">
                 {isBalanceVisible
                   ? formatCurrency((displayUser as any)?.wallet?.balance || 0)
                   : '••••••••'
@@ -124,6 +133,20 @@ export function Header() {
                 )}
               </Button>
             </div>
+
+            {/* Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="hidden md:flex"
+            >
+              {theme === 'light' ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
+            </Button>
 
             {/* Notifications */}
             <Button variant="ghost" size="icon" className="relative hidden md:flex">
@@ -166,11 +189,11 @@ export function Header() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/app/profile')}>
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/app/settings')}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
                 </DropdownMenuItem>
@@ -263,7 +286,32 @@ export function Header() {
                   Notifications (3)
                 </Button>
 
-                <Button variant="ghost" className="w-full justify-start">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={toggleTheme}
+                >
+                  {theme === 'light' ? (
+                    <>
+                      <Moon className="mr-2 h-4 w-4" />
+                      Dark Mode
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="mr-2 h-4 w-4" />
+                      Light Mode
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    navigate('/app/settings')
+                    setIsMobileMenuOpen(false)
+                  }}
+                >
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </Button>
@@ -271,7 +319,10 @@ export function Header() {
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-red-600"
-                  onClick={handleLogout}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false)
+                    handleLogout()
+                  }}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out

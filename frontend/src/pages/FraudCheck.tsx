@@ -1,22 +1,96 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, AlertTriangle, CheckCircle, Search, ArrowLeft, Home, Wallet } from 'lucide-react'
+import { Shield, AlertTriangle, CheckCircle, Search, ArrowLeft, Home, Wallet, CreditCard, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useAuthStore } from '@/store/authStore'
+import { formatCurrency } from '@/lib/utils'
+// import { toast } from '@/components/ui/use-toast'
 
 export default function FraudCheck() {
   const navigate = useNavigate()
+  const { isAuthenticated, user } = useAuthStore()
   const [userCode, setUserCode] = useState('')
   const [searchResult, setSearchResult] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [showPayment, setShowPayment] = useState(false)
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState('')
 
-  const handleSearch = async () => {
+  const FRAUD_CHECK_COST = 50 // 50 KES per check
+
+  const handlePaymentRequired = () => {
     if (!userCode.trim()) return
 
+    if (!isAuthenticated) {
+      // Show payment modal for non-logged users
+      setShowPayment(true)
+    } else {
+      // Check if user has sufficient balance
+      const userBalance = (user as any)?.wallet?.balance || 0
+      if (userBalance >= FRAUD_CHECK_COST) {
+        // Deduct from wallet and proceed
+        handleWalletDeduction()
+      } else {
+        // Show M-Pesa payment option for insufficient balance
+        setShowPayment(true)
+      }
+    }
+  }
+
+  const handleWalletDeduction = async () => {
     setIsLoading(true)
-    // Mock API call
+    // Mock wallet deduction
+    setTimeout(() => {
+      // Update user balance (in real app, this would be done via API)
+      const currentBalance = (user as any)?.wallet?.balance || 0
+      const newBalance = currentBalance - FRAUD_CHECK_COST
+
+      // Update the user's wallet balance (mock)
+      if (user) {
+        (user as any).wallet.balance = newBalance
+      }
+
+      performFraudCheck()
+      // toast({
+      //   title: "Payment Successful",
+      //   description: `${formatCurrency(FRAUD_CHECK_COST)} deducted from your wallet`,
+      // })
+    }, 1000)
+  }
+
+  const handleMpesaPayment = async () => {
+    // Validate phone number
+    if (!phoneNumber.trim()) {
+      alert('Please enter your phone number')
+      return
+    }
+
+    const phoneRegex = /^(\+254|254|0)?[17]\d{8}$/
+    if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
+      alert('Please enter a valid Kenyan phone number (e.g., 0712345678 or +254712345678)')
+      return
+    }
+
+    setIsProcessingPayment(true)
+    // Mock M-Pesa payment with STK push
+    setTimeout(() => {
+      setIsProcessingPayment(false)
+      setShowPayment(false)
+      setPhoneNumber('')
+      performFraudCheck()
+      alert(`Payment successful! STK push sent to ${phoneNumber}`)
+      // toast({
+      //   title: "Payment Successful",
+      //   description: `Paid ${formatCurrency(FRAUD_CHECK_COST)} via M-Pesa to ${phoneNumber}`,
+      // })
+    }, 3000)
+  }
+
+  const performFraudCheck = () => {
+    // Mock fraud check API call
     setTimeout(() => {
       // Mock response based on user code
       const mockResult = {
@@ -31,6 +105,10 @@ export default function FraudCheck() {
       setSearchResult(mockResult)
       setIsLoading(false)
     }, 1500)
+  }
+
+  const handleSearch = () => {
+    handlePaymentRequired()
   }
 
   const getStatusColor = (status: string) => {
@@ -52,9 +130,9 @@ export default function FraudCheck() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background transition-colors">
       {/* Navigation Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 transition-colors">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-16">
             {/* Left: Back Button */}
@@ -96,8 +174,8 @@ export default function FraudCheck() {
         <div className="bg-kenya-red p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
           <Shield className="h-8 w-8 text-white" />
         </div>
-        <h1 className="text-3xl font-bold">Fraud Check Portal</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Fraud Check Portal</h1>
+        <p className="text-gray-600 dark:text-gray-300 mt-2">
           Verify user trust scores and check for fraud reports
         </p>
       </div>
@@ -122,15 +200,15 @@ export default function FraudCheck() {
                 maxLength={8}
                 className="uppercase font-mono"
               />
-              <Button 
-                onClick={handleSearch} 
+              <Button
+                onClick={handleSearch}
                 disabled={!userCode.trim() || isLoading}
                 className="min-w-[100px]"
               >
                 {isLoading ? (
                   <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
                 ) : (
-                  <><Search className="mr-2 h-4 w-4" /> Search</>
+                  <><Search className="mr-2 h-4 w-4" /> Check ({formatCurrency(FRAUD_CHECK_COST)})</>
                 )}
               </Button>
             </div>
@@ -240,6 +318,95 @@ export default function FraudCheck() {
           <p>• <strong>Report Fraud:</strong> If you encounter fraud, report it through your wallet app</p>
         </CardContent>
       </Card>
+
+      {/* Payment Modal */}
+      {showPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <div className="text-center mb-4">
+              <div className="bg-kenya-red p-3 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <CreditCard className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Payment Required</h3>
+              <p className="text-gray-600 dark:text-gray-300 mt-2">
+                {!isAuthenticated
+                  ? "Pay to perform fraud check"
+                  : "Insufficient wallet balance"}
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <div className="bg-muted p-4 rounded-lg text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-300">Amount to pay</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(FRAUD_CHECK_COST)}</p>
+              </div>
+            </div>
+
+            {isAuthenticated && (
+              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="flex items-center">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-2" />
+                  <div>
+                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Insufficient Balance</p>
+                    <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                      Current balance: {formatCurrency((user as any)?.wallet?.balance || 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  placeholder="e.g., 0712345678 or +254712345678"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="w-full"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Enter your M-Pesa registered phone number
+                </p>
+              </div>
+
+              <Button
+                onClick={handleMpesaPayment}
+                disabled={isProcessingPayment || !phoneNumber.trim()}
+                className="w-full"
+              >
+                {isProcessingPayment ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                    Processing Payment...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Pay via M-Pesa
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => setShowPayment(false)}
+                disabled={isProcessingPayment}
+                className="w-full"
+              >
+                Cancel
+              </Button>
+            </div>
+
+            <div className="mt-4 text-xs text-center text-gray-500 dark:text-gray-400">
+              <p>Secure payment powered by M-Pesa</p>
+              <p>You will receive an SMS prompt to complete payment</p>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   )

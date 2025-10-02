@@ -23,7 +23,13 @@ export default function CommunityFinance() {
     loan.borrowerId === currentUserId || loan.lenderId === currentUserId
   )
 
-  const totalChamaSavings = userChamas.reduce((sum, chama) => sum + chama.totalSavings, 0)
+  const totalChamaSavings = userChamas.reduce((sum, chama) => {
+    // Calculate actual user contributions across all their chamas
+    const userContributions = chama.members
+      .filter(member => member.id === currentUserId)
+      .reduce((memberSum, member) => memberSum + member.totalContributions, 0)
+    return sum + userContributions
+  }, 0)
   const activeLoans = userLoans.filter(loan => loan.status === 'active').length
   const pendingRequests = loanRequests.filter(req => req.status === 'pending').length
 

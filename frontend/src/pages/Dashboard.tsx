@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowUpRight,
   ArrowDownLeft,
@@ -10,6 +10,7 @@ import {
   Activity,
   Eye,
   EyeOff,
+  Plus,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,7 @@ import { formatCurrency } from '@/lib/utils'
 
 export default function Dashboard() {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
 
   // Mock user data for demo purposes
   const mockUser = {
@@ -141,10 +143,10 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-foreground">
           Welcome back, {displayUser?.firstName}!
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           Here's what's happening with your wallet today.
         </p>
       </div>
@@ -159,22 +161,33 @@ export default function Dashboard() {
                 Available funds in your account
               </CardDescription>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                const newVisibility = !isBalanceVisible
-                setIsBalanceVisible(newVisibility)
-                localStorage.setItem('balanceVisible', JSON.stringify(newVisibility))
-              }}
-              className="text-white/80 hover:text-white hover:bg-white/10"
-            >
-              {isBalanceVisible ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate('/app/topup')}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Top Up
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const newVisibility = !isBalanceVisible
+                  setIsBalanceVisible(newVisibility)
+                  localStorage.setItem('balanceVisible', JSON.stringify(newVisibility))
+                }}
+                className="text-white/80 hover:text-white hover:bg-white/10"
+              >
+                {isBalanceVisible ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -213,7 +226,7 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <h3 className="font-semibold">{action.title}</h3>
-                        <p className="text-sm text-gray-600">{action.description}</p>
+                        <p className="text-sm text-muted-foreground">{action.description}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -234,7 +247,7 @@ export default function Dashboard() {
                 <Activity className="h-8 w-8 text-blue-600" />
                 <div>
                   <p className="text-2xl font-bold">{stats.totalTransactions}</p>
-                  <p className="text-sm text-gray-600">Total Transactions</p>
+                  <p className="text-sm text-muted-foreground">Total Transactions</p>
                 </div>
               </div>
             </CardContent>
@@ -248,7 +261,7 @@ export default function Dashboard() {
                   <p className="text-2xl font-bold">
                     {formatCurrency(stats.monthlyVolume)}
                   </p>
-                  <p className="text-sm text-gray-600">Monthly Volume</p>
+                  <p className="text-sm text-muted-foreground">Monthly Volume</p>
                 </div>
               </div>
             </CardContent>
@@ -260,7 +273,7 @@ export default function Dashboard() {
                 <Shield className="h-8 w-8 text-purple-600" />
                 <div>
                   <p className="text-2xl font-bold">{stats.escrowActive}</p>
-                  <p className="text-sm text-gray-600">Active Escrows</p>
+                  <p className="text-sm text-muted-foreground">Active Escrows</p>
                 </div>
               </div>
             </CardContent>
@@ -272,7 +285,7 @@ export default function Dashboard() {
                 <CreditCard className="h-8 w-8 text-orange-600" />
                 <div>
                   <p className="text-2xl font-bold">KES</p>
-                  <p className="text-sm text-gray-600">Primary Currency</p>
+                  <p className="text-sm text-muted-foreground">Primary Currency</p>
                 </div>
               </div>
             </CardContent>
@@ -293,7 +306,7 @@ export default function Dashboard() {
 
         <Card>
           <CardContent className="p-0">
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-border">
               {recentTransactions.map((transaction) => (
                 <div key={transaction.id} className="p-4 flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -308,7 +321,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <p className="font-medium">{transaction.description}</p>
-                      <p className="text-sm text-gray-600">{transaction.date}</p>
+                      <p className="text-sm text-muted-foreground">{transaction.date}</p>
                     </div>
                   </div>
                   <div className="text-right">

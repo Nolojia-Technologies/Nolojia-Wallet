@@ -37,6 +37,9 @@ interface BorrowForm {
 
 interface LenderForm {
   amount: number
+  minAmount?: number
+  maxAmount?: number
+  lendingType: 'fixed' | 'flexible'
   interestRate: number
   duration: number
   lateFeePercentage: number
@@ -153,25 +156,71 @@ function LoanMarketplace({ currentUserId, filters }: { currentUserId: string, fi
     .sort((a, b) => b.trustScore - a.trustScore) // Sort by trust score descending
 
   const filteredOfferings = lenderOfferings
-    .filter(offering =>
-      offering.status === 'available' &&
-      offering.lenderId !== currentUserId &&
-      offering.amount >= filters.minAmount &&
-      offering.amount <= filters.maxAmount &&
-      offering.duration <= filters.maxRepaymentPeriod &&
-      (filters.purpose === '' || offering.additionalTerms.toLowerCase().includes(filters.purpose.toLowerCase()))
-    )
+    .filter(offering => {
+      if (offering.status !== 'available' || offering.lenderId === currentUserId) {
+        return false
+      }
+
+      // For flexible offerings, check if filter range overlaps with offering range
+      if (offering.lendingType === 'flexible' && offering.minAmount && offering.maxAmount) {
+        const offeringMin = offering.minAmount
+        const offeringMax = offering.maxAmount
+        const filterMin = filters.minAmount
+        const filterMax = filters.maxAmount
+
+        // Check if ranges overlap: offering range intersects with filter range
+        const rangeOverlaps = offeringMin <= filterMax && offeringMax >= filterMin
+        if (!rangeOverlaps) return false
+      } else {
+        // For fixed offerings, use original logic
+        if (offering.amount < filters.minAmount || offering.amount > filters.maxAmount) {
+          return false
+        }
+      }
+
+      // Check other filters
+      if (offering.duration > filters.maxRepaymentPeriod) return false
+      if (filters.purpose !== '' && !offering.additionalTerms.toLowerCase().includes(filters.purpose.toLowerCase())) {
+        return false
+      }
+
+      return true
+    })
     .sort((a, b) => a.interestRate - b.interestRate) // Sort by interest rate ascending (best deals first)
 
   const handleFundLoan = (requestId: string) => {
     fundLoan(requestId, currentUserId, 'John Doe') // In real app, get name from auth store
   }
 
-  const handleTakeLoan = (offeringId: string) => {
+  const handleTakeLoan = (offeringId: string, offering: any) => {
     const purpose = prompt('Please enter the purpose for this loan:')
-    if (purpose) {
-      takeLenderOffering(offeringId, currentUserId, 'John Doe', purpose) // In real app, get name from auth store
+    if (!purpose) return
+
+    let amount = offering.amount
+
+    // For flexible offerings, let borrower choose amount
+    if (offering.lendingType === 'flexible' && offering.minAmount && offering.maxAmount) {
+      const requestedAmount = prompt(
+        `This is a flexible loan offering. You can borrow between ${formatCurrency(offering.minAmount)} and ${formatCurrency(offering.maxAmount)}.\n\nHow much would you like to borrow?`
+      )
+
+      if (!requestedAmount) return
+
+      const parsedAmount = parseFloat(requestedAmount)
+      if (isNaN(parsedAmount)) {
+        alert('Please enter a valid number')
+        return
+      }
+
+      if (parsedAmount < offering.minAmount || parsedAmount > offering.maxAmount) {
+        alert(`Amount must be between ${formatCurrency(offering.minAmount)} and ${formatCurrency(offering.maxAmount)}`)
+        return
+      }
+
+      amount = parsedAmount
     }
+
+    takeLenderOffering(offeringId, currentUserId, 'John Doe', purpose, amount) // In real app, get name from auth store
   }
 
   const getTrustScoreColor = (score: number) => {
@@ -285,7 +334,11 @@ function LoanMarketplace({ currentUserId, filters }: { currentUserId: string, fi
               {filteredOfferings.map((offering) => {
                 const createdDate = new Date(offering.createdAt)
                 const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
-                const totalRepayment = offering.amount * (1 + offering.interestRate / 100)
+                // Calculate repayment range for flexible offerings
+                const calculateRepayment = (amount: number) => amount * (1 + offering.interestRate / 100)
+                const totalRepayment = offering.lendingType === 'flexible' && offering.minAmount && offering.maxAmount
+                  ? `${formatCurrency(calculateRepayment(offering.minAmount))} - ${formatCurrency(calculateRepayment(offering.maxAmount))}`
+                  : formatCurrency(calculateRepayment(offering.amount))
 
                 return (
                   <Card key={offering.id} className="hover:shadow-lg transition-shadow border-green-200">
@@ -299,7 +352,10 @@ function LoanMarketplace({ currentUserId, filters }: { currentUserId: string, fi
                         </span>
                       </div>
                       <CardTitle className="text-lg text-green-700">
-                        {formatCurrency(offering.amount)}
+                        {offering.lendingType === 'flexible' && offering.minAmount && offering.maxAmount
+                          ? `${formatCurrency(offering.minAmount)} - ${formatCurrency(offering.maxAmount)}`
+                          : formatCurrency(offering.amount)
+                        }
                       </CardTitle>
                       <CardDescription>
                         Offered by {offering.lenderName}
@@ -343,16 +399,16 @@ function LoanMarketplace({ currentUserId, filters }: { currentUserId: string, fi
 
                       <div className="bg-blue-50 p-2 rounded text-sm">
                         <p className="font-medium text-blue-900">
-                          Total repayment: {formatCurrency(totalRepayment)}
+                          Total repayment: {totalRepayment}
                         </p>
                       </div>
 
                       <Button
                         className="w-full bg-green-600 hover:bg-green-700"
-                        onClick={() => handleTakeLoan(offering.id)}
+                        onClick={() => handleTakeLoan(offering.id, offering)}
                       >
                         <TrendingDown className="w-4 h-4 mr-2" />
-                        Take This Loan
+                        {offering.lendingType === 'flexible' ? 'Choose Amount & Take Loan' : 'Take This Loan'}
                       </Button>
                     </CardContent>
                   </Card>
@@ -599,12 +655,19 @@ function LoanDashboard({ currentUserId }: { currentUserId: string }) {
 
 function LendMoneySection({ currentUserId }: { currentUserId: string }) {
   const { createLenderOffering, getWalletBalance, getUserLenderOfferings, updateLenderOffering, deleteLenderOffering, validateAndCleanupOfferings } = useCommunityFinanceStore()
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<LenderForm>()
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<LenderForm>({
+    defaultValues: {
+      lendingType: 'fixed'
+    }
+  })
   const [editingOffering, setEditingOffering] = useState<string | null>(null)
 
   const walletBalance = getWalletBalance(currentUserId)
   const userOfferings = getUserLenderOfferings(currentUserId)
   const watchedAmount = watch('amount')
+  const watchedMinAmount = watch('minAmount')
+  const watchedMaxAmount = watch('maxAmount')
+  const watchedLendingType = watch('lendingType')
 
   // Validate and cleanup offerings when component loads
   useEffect(() => {
@@ -612,35 +675,48 @@ function LendMoneySection({ currentUserId }: { currentUserId: string }) {
   }, [currentUserId, validateAndCleanupOfferings])
 
   const onSubmitLend = (data: LenderForm) => {
-    if (data.amount > walletBalance) {
+    // Validate based on lending type
+    const maxPossibleAmount = data.lendingType === 'flexible' ? (data.maxAmount || 0) : data.amount
+
+    if (maxPossibleAmount > walletBalance) {
       alert(`Cannot offer more than your wallet balance: ${formatCurrency(walletBalance)}`)
       return
     }
 
+    // Validate flexible amount range
+    if (data.lendingType === 'flexible') {
+      if (!data.minAmount || !data.maxAmount) {
+        alert('Both minimum and maximum amounts are required for flexible lending')
+        return
+      }
+      if (data.minAmount >= data.maxAmount) {
+        alert('Maximum amount must be greater than minimum amount')
+        return
+      }
+    }
+
+    const offeringData = {
+      amount: data.lendingType === 'fixed' ? data.amount : data.maxAmount || 0,
+      minAmount: data.lendingType === 'flexible' ? data.minAmount : undefined,
+      maxAmount: data.lendingType === 'flexible' ? data.maxAmount : undefined,
+      lendingType: data.lendingType,
+      interestRate: data.interestRate,
+      duration: data.duration,
+      penalties: {
+        lateFeePercentage: data.lateFeePercentage,
+        gracePeriodDays: data.gracePeriodDays
+      },
+      additionalTerms: data.additionalTerms
+    }
+
     if (editingOffering) {
-      updateLenderOffering(editingOffering, {
-        amount: data.amount,
-        interestRate: data.interestRate,
-        duration: data.duration,
-        penalties: {
-          lateFeePercentage: data.lateFeePercentage,
-          gracePeriodDays: data.gracePeriodDays
-        },
-        additionalTerms: data.additionalTerms
-      })
+      updateLenderOffering(editingOffering, offeringData)
       setEditingOffering(null)
     } else {
       createLenderOffering({
         lenderId: currentUserId,
         lenderName: 'John Doe', // In real app, get from auth store
-        amount: data.amount,
-        interestRate: data.interestRate,
-        duration: data.duration,
-        penalties: {
-          lateFeePercentage: data.lateFeePercentage,
-          gracePeriodDays: data.gracePeriodDays
-        },
-        additionalTerms: data.additionalTerms
+        ...offeringData
       })
     }
 
@@ -655,7 +731,10 @@ function LendMoneySection({ currentUserId }: { currentUserId: string }) {
 
     setEditingOffering(offering.id)
     reset({
-      amount: offering.amount,
+      lendingType: offering.lendingType || 'fixed',
+      amount: offering.lendingType === 'fixed' ? offering.amount : undefined,
+      minAmount: offering.minAmount,
+      maxAmount: offering.maxAmount,
       interestRate: offering.interestRate,
       duration: offering.duration,
       lateFeePercentage: offering.penalties.lateFeePercentage,
@@ -703,28 +782,104 @@ function LendMoneySection({ currentUserId }: { currentUserId: string }) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmitLend)} className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount to Lend (KES) *</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  placeholder="25000"
-                  {...register('amount', {
-                    required: 'Amount is required',
-                    min: { value: 1000, message: 'Minimum amount is KES 1,000' },
-                    max: { value: walletBalance, message: `Cannot exceed wallet balance: ${formatCurrency(walletBalance)}` }
-                  })}
-                />
-                {errors.amount && (
-                  <p className="text-sm text-red-600">{errors.amount.message}</p>
-                )}
-                {watchedAmount && watchedAmount > walletBalance && (
-                  <p className="text-sm text-orange-600">
-                    Warning: Amount exceeds wallet balance
-                  </p>
-                )}
+            {/* Lending Type Selection */}
+            <div className="space-y-3">
+              <Label>Lending Type *</Label>
+              <div className="flex space-x-6">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="fixed"
+                    value="fixed"
+                    {...register('lendingType', { required: 'Lending type is required' })}
+                    className="h-4 w-4 text-kenya-red focus:ring-kenya-red"
+                  />
+                  <Label htmlFor="fixed" className="cursor-pointer">Fixed Amount</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="flexible"
+                    value="flexible"
+                    {...register('lendingType', { required: 'Lending type is required' })}
+                    className="h-4 w-4 text-kenya-red focus:ring-kenya-red"
+                  />
+                  <Label htmlFor="flexible" className="cursor-pointer">Flexible Range</Label>
+                </div>
               </div>
+              {errors.lendingType && (
+                <p className="text-sm text-red-600">{errors.lendingType.message}</p>
+              )}
+            </div>
+
+            {/* Amount Inputs */}
+            {watchedLendingType === 'fixed' ? (
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount to Lend (KES) *</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="25000"
+                    {...register('amount', {
+                      required: watchedLendingType === 'fixed' ? 'Amount is required' : false,
+                      min: { value: 1000, message: 'Minimum amount is KES 1,000' },
+                      max: { value: walletBalance, message: `Cannot exceed wallet balance: ${formatCurrency(walletBalance)}` }
+                    })}
+                  />
+                  {errors.amount && (
+                    <p className="text-sm text-red-600">{errors.amount.message}</p>
+                  )}
+                  {watchedAmount && watchedAmount > walletBalance && (
+                    <p className="text-sm text-orange-600">
+                      Warning: Amount exceeds wallet balance
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="minAmount">Minimum Amount (KES) *</Label>
+                  <Input
+                    id="minAmount"
+                    type="number"
+                    placeholder="5000"
+                    {...register('minAmount', {
+                      required: watchedLendingType === 'flexible' ? 'Minimum amount is required' : false,
+                      min: { value: 1000, message: 'Minimum amount is KES 1,000' },
+                      max: { value: walletBalance, message: `Cannot exceed wallet balance: ${formatCurrency(walletBalance)}` }
+                    })}
+                  />
+                  {errors.minAmount && (
+                    <p className="text-sm text-red-600">{errors.minAmount.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxAmount">Maximum Amount (KES) *</Label>
+                  <Input
+                    id="maxAmount"
+                    type="number"
+                    placeholder="50000"
+                    {...register('maxAmount', {
+                      required: watchedLendingType === 'flexible' ? 'Maximum amount is required' : false,
+                      min: { value: watchedMinAmount || 1001, message: 'Maximum must be greater than minimum' },
+                      max: { value: walletBalance, message: `Cannot exceed wallet balance: ${formatCurrency(walletBalance)}` }
+                    })}
+                  />
+                  {errors.maxAmount && (
+                    <p className="text-sm text-red-600">{errors.maxAmount.message}</p>
+                  )}
+                  {watchedMaxAmount && watchedMaxAmount > walletBalance && (
+                    <p className="text-sm text-orange-600">
+                      Warning: Maximum amount exceeds wallet balance
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-4">
 
               <div className="space-y-2">
                 <Label htmlFor="interestRate">Interest Rate (%) *</Label>
@@ -812,11 +967,12 @@ function LendMoneySection({ currentUserId }: { currentUserId: string }) {
             </div>
 
             <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-              <h4 className="font-semibold text-green-900 mb-2">Lender Protection</h4>
+              <h4 className="font-semibold text-green-900 mb-2">Lending Options</h4>
               <ul className="text-sm text-green-800 space-y-1">
+                <li>• <strong>Fixed Amount:</strong> Lend a specific amount</li>
+                <li>• <strong>Flexible Range:</strong> Set min/max amounts, borrowers choose their loan size</li>
                 <li>• All loans are tracked and monitored for repayment</li>
                 <li>• Late fees are automatically calculated and applied</li>
-                <li>• Borrower trust scores are updated based on payment history</li>
                 <li>• You can edit terms until the loan is taken</li>
               </ul>
             </div>
@@ -863,8 +1019,16 @@ function LendMoneySection({ currentUserId }: { currentUserId: string }) {
                 <div key={offering.id} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
-                      <h3 className="font-semibold text-lg">{formatCurrency(offering.amount)}</h3>
+                      <h3 className="font-semibold text-lg">
+                        {offering.lendingType === 'flexible' && offering.minAmount && offering.maxAmount
+                          ? `${formatCurrency(offering.minAmount)} - ${formatCurrency(offering.maxAmount)}`
+                          : formatCurrency(offering.amount)
+                        }
+                      </h3>
                       {getStatusBadge(offering.status)}
+                      {offering.lendingType === 'flexible' && (
+                        <Badge variant="outline" className="text-xs">Flexible</Badge>
+                      )}
                     </div>
                     <div className="flex space-x-2">
                       {offering.isEditable && offering.status === 'available' && (

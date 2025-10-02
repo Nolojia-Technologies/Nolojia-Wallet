@@ -55,7 +55,10 @@ module.exports = {
           red: "#DC2626",
           green: "#059669",
           black: "#000000",
-        }
+        },
+        "kenya-red": "#DC2626",
+        "kenya-green": "#059669",
+        "kenya-black": "#000000"
       },
       borderRadius: {
         lg: "var(--radius)",

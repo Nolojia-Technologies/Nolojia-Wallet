@@ -104,6 +104,40 @@ export class User {
   isVerified: boolean;
 
   @Column({ default: false })
+  isEmailVerified: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  emailVerifiedAt: Date;
+
+  @Column({ default: false })
+  isPhoneVerified: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  phoneVerifiedAt: Date;
+
+  @Column({ default: false })
+  isKycVerified: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  kycVerifiedAt: Date;
+
+  @Column({ default: 0 })
+  loginAttempts: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lockedUntil: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastPasswordReset: Date;
+
+  @Column({ default: false })
+  twoFactorEnabled: boolean;
+
+  @Column({ length: 100, nullable: true })
+  @Exclude()
+  twoFactorSecret: string;
+
+  @Column({ default: false })
   isBlacklisted: boolean;
 
   @Column({ default: true })
