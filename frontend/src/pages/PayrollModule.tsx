@@ -32,6 +32,8 @@ import {
   UserCheck,
   Zap,
   Eye,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -139,6 +141,13 @@ export default function PayrollModule() {
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
   const [counterEvidenceFiles, setCounterEvidenceFiles] = useState<File[]>([])
   const [counterEvidenceNotes, setCounterEvidenceNotes] = useState('')
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+
+  const handleCopy = async (text: string, field: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 2000)
+  }
 
   // Form states
   const [newEmployee, setNewEmployee] = useState({
@@ -834,8 +843,36 @@ export default function PayrollModule() {
                           <h3 className="text-lg md:text-xl font-semibold truncate">{employee.name}</h3>
                           <p className="text-sm md:text-base text-muted-foreground truncate">{employee.role}</p>
                           <div className="flex flex-wrap items-center gap-1.5 md:gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs">ID: {employee.walletId}</Badge>
-                            <Badge variant="outline" className="text-xs hidden sm:inline-flex">{employee.phoneNumber}</Badge>
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" className="text-xs">ID: {employee.walletId}</Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCopy(employee.walletId, `wallet-${employee.id}`)}
+                                className="h-5 w-5 p-0"
+                              >
+                                {copiedField === `wallet-${employee.id}` ? (
+                                  <Check className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                            <div className="hidden sm:flex items-center gap-1">
+                              <Badge variant="outline" className="text-xs">{employee.phoneNumber}</Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCopy(employee.phoneNumber, `phone-${employee.id}`)}
+                                className="h-5 w-5 p-0"
+                              >
+                                {copiedField === `phone-${employee.id}` ? (
+                                  <Check className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
                             <Badge className={`${getProjectTypeColor(employee.projectType)} text-xs`}>
                               {employee.projectType}
                             </Badge>

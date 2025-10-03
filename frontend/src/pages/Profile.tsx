@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { User, Mail, Phone, MapPin, Calendar, Shield, Key } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Calendar, Shield, Key, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function Profile() {
   const { user } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     firstName: user?.firstName || 'Demo',
     lastName: user?.lastName || 'User',
@@ -28,6 +29,13 @@ export default function Profile() {
   })
 
   const userInitials = `${formData.firstName[0]}${formData.lastName[0]}`
+
+  const handleCopy = async (text: string, field: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    toast.success('Copied to clipboard!')
+    setTimeout(() => setCopiedField(null), 2000)
+  }
 
   const handlePersonalInfoSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,12 +87,38 @@ export default function Profile() {
                   <AvatarImage src="/avatars/01.png" alt={formData.firstName} />
                   <AvatarFallback className="text-lg">{userInitials}</AvatarFallback>
                 </Avatar>
-                <div>
+                <div className="flex-1">
                   <CardTitle>{formData.firstName} {formData.lastName}</CardTitle>
-                  <CardDescription>{formData.email}</CardDescription>
-                  <p className="text-sm text-muted-foreground">
-                    User Code: {user?.userCode || 'DEMO1234'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <CardDescription>{formData.email}</CardDescription>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy(formData.email, 'email')}
+                      className="h-6 w-6 p-0"
+                    >
+                      {copiedField === 'email' ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>User Code: {user?.userCode || 'DEMO1234'}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy(user?.userCode || 'DEMO1234', 'userCode')}
+                      className="h-6 w-6 p-0"
+                    >
+                      {copiedField === 'userCode' ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -121,12 +155,28 @@ export default function Profile() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      disabled={!isEditing}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        disabled={!isEditing}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopy(formData.phone, 'phone')}
+                        className="flex-shrink-0"
+                      >
+                        {copiedField === 'phone' ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="address">Address</Label>

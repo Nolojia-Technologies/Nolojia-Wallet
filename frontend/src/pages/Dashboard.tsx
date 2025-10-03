@@ -11,6 +11,8 @@ import {
   Eye,
   EyeOff,
   Plus,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -40,6 +42,13 @@ export default function Dashboard() {
   })
 
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+
+  const handleCopy = async (text: string, field: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 2000)
+  }
 
   // Load balance visibility preference from localStorage and listen for changes
   useEffect(() => {
@@ -191,20 +200,60 @@ export default function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold mb-4">
-            {isBalanceVisible
-              ? formatCurrency((displayUser as any)?.wallet?.balance || 0)
-              : '••••••••'
-            }
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-white/80">
-              User Code: {displayUser?.userCode}
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-3xl font-bold">
+              {isBalanceVisible
+                ? formatCurrency((displayUser as any)?.wallet?.balance || 0)
+                : '••••••••'
+              }
             </div>
-            <div className="flex items-center space-x-2">
+            {isBalanceVisible && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopy(((displayUser as any)?.wallet?.balance || 0).toString(), 'balance')}
+                className="text-white/80 hover:text-white hover:bg-white/10"
+              >
+                {copiedField === 'balance' ? (
+                  <Check className="h-4 w-4 text-white" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-sm text-white/80">
+              <span>User Code: {displayUser?.userCode}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopy(displayUser?.userCode || '', 'userCode')}
+                className="h-6 w-6 p-0 text-white/80 hover:text-white hover:bg-white/10"
+              >
+                {copiedField === 'userCode' ? (
+                  <Check className="h-3 w-3 text-white" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
               <div className={`text-sm ${getTrustStatusColor(stats.trustScore)}`}>
                 Trust Score: {stats.trustScore}/5.0 ({getTrustStatusText(stats.trustScore)})
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopy(stats.trustScore.toString(), 'trustScore')}
+                className="h-6 w-6 p-0 text-white/80 hover:text-white hover:bg-white/10"
+              >
+                {copiedField === 'trustScore' ? (
+                  <Check className="h-3 w-3 text-white" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+              </Button>
             </div>
           </div>
         </CardContent>

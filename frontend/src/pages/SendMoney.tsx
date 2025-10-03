@@ -59,6 +59,7 @@ export default function SendMoney() {
   const [activeTab, setActiveTab] = useState<'wallet' | 'withdraw'>('wallet')
   const [step, setStep] = useState<'form' | 'confirm' | 'success'>('form')
   const [receipt, setReceipt] = useState<DigitalReceipt | null>(null)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
   // Form hooks for each type
   const walletForm = useForm<WalletTransferForm>()
   const withdrawalForm = useForm<WithdrawalForm>()
@@ -134,8 +135,10 @@ export default function SendMoney() {
   }
 
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const copyToClipboard = async (text: string, field: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 2000)
   }
 
   const startNewTransaction = () => {
@@ -158,7 +161,7 @@ Blockchain: ${receipt.blockchainHash || 'Processing...'}
       if (navigator.share) {
         navigator.share({ title: 'Transaction Receipt', text: shareText })
       } else {
-        copyToClipboard(shareText)
+        copyToClipboard(shareText, 'receipt')
       }
     }
   }
@@ -188,10 +191,14 @@ Blockchain: ${receipt.blockchainHash || 'Processing...'}
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => copyToClipboard(receipt.transactionId)}
+                        onClick={() => copyToClipboard(receipt.transactionId, 'transactionId')}
                         className="h-6 w-6 p-0"
                       >
-                        <Copy className="h-3 w-3" />
+                        {copiedField === 'transactionId' ? (
+                          <Check className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -219,10 +226,14 @@ Blockchain: ${receipt.blockchainHash || 'Processing...'}
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => copyToClipboard(receipt.blockchainHash!)}
+                          onClick={() => copyToClipboard(receipt.blockchainHash!, 'blockchainHash')}
                           className="h-6 w-6 p-0"
                         >
-                          <Copy className="h-3 w-3" />
+                          {copiedField === 'blockchainHash' ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
                         </Button>
                       </div>
                     </div>
