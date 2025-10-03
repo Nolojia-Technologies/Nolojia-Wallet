@@ -1319,21 +1319,21 @@ export default function PayrollModule() {
 
       {/* Add Employee Modal */}
       {showAddEmployee && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>Add New Employee</CardTitle>
-                  <CardDescription>Fill in employee details and pay agreement</CardDescription>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <Card className="w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-lg sm:text-xl">Add New Employee</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Fill in employee details and pay agreement</CardDescription>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setShowAddEmployee(false)}>
+                <Button variant="ghost" size="sm" className="flex-shrink-0" onClick={() => setShowAddEmployee(false)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name *</Label>
                   <Input
@@ -1454,25 +1454,25 @@ export default function PayrollModule() {
                 </div>
               </div>
 
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200">
-                <h4 className="font-medium mb-2">Trust Verification (Optional)</h4>
+              <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200">
+                <h4 className="font-medium mb-2 text-sm sm:text-base">Trust Verification (Optional)</h4>
                 <div className="space-y-2">
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Upload className="h-4 w-4 mr-2" />
+                  <Button variant="outline" size="sm" className="w-full text-xs sm:text-sm">
+                    <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                     Upload ID Document
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Upload className="h-4 w-4 mr-2" />
+                  <Button variant="outline" size="sm" className="w-full text-xs sm:text-sm">
+                    <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                     Upload KRA PIN Certificate
                   </Button>
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-4">
-                <Button variant="outline" className="flex-1" onClick={() => setShowAddEmployee(false)}>
+              <div className="flex gap-2 pt-3 sm:pt-4">
+                <Button variant="outline" className="flex-1" size="sm" onClick={() => setShowAddEmployee(false)}>
                   Cancel
                 </Button>
-                <Button className="flex-1" onClick={handleAddEmployee}>
+                <Button className="flex-1" size="sm" onClick={handleAddEmployee}>
                   Add Employee
                 </Button>
               </div>
@@ -1483,23 +1483,23 @@ export default function PayrollModule() {
 
       {/* Add Project Modal */}
       {showAddProject && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-2xl">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>Create New Project</CardTitle>
-                  <CardDescription>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <Card className="w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-lg sm:text-xl">Create New Project</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     Set up a new project and manage its workforce
                   </CardDescription>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setShowAddProject(false)}>
+                <Button variant="ghost" size="sm" className="flex-shrink-0" onClick={() => setShowAddProject(false)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="projectName">Project Name *</Label>
                   <Input
@@ -1572,15 +1572,16 @@ export default function PayrollModule() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-4">
+              <div className="flex gap-2 pt-3 sm:pt-4">
                 <Button
                   variant="outline"
                   className="flex-1"
+                  size="sm"
                   onClick={() => setShowAddProject(false)}
                 >
                   Cancel
                 </Button>
-                <Button className="flex-1" onClick={handleAddProject}>
+                <Button className="flex-1" size="sm" onClick={handleAddProject}>
                   Create Project
                 </Button>
               </div>
@@ -1591,22 +1592,23 @@ export default function PayrollModule() {
 
       {/* View Evidence Modal */}
       {showViewEvidence && selectedDispute && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="flex items-center">
-                    <FileText className="h-5 w-5 mr-2" />
-                    All Evidence - Dispute #{selectedDispute.id}
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <Card className="w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="flex items-center text-lg sm:text-xl flex-wrap">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+                    <span className="break-words">All Evidence - Dispute #{selectedDispute.id}</span>
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">
                     Review all submitted evidence for this dispute
                   </CardDescription>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="flex-shrink-0"
                   onClick={() => {
                     setShowViewEvidence(false)
                     setSelectedDispute(null)
@@ -1616,10 +1618,10 @@ export default function PayrollModule() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 sm:space-y-6">
               {/* Dispute Summary */}
-              <div className="p-4 bg-muted rounded-lg">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Raised By</p>
                     <p className="font-medium">
@@ -1756,10 +1758,11 @@ export default function PayrollModule() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-4">
+              <div className="flex flex-col sm:flex-row gap-2 pt-3 sm:pt-4">
                 <Button
                   variant="outline"
                   className="flex-1"
+                  size="sm"
                   onClick={() => {
                     setShowViewEvidence(false)
                     setSelectedDispute(null)
@@ -1769,13 +1772,15 @@ export default function PayrollModule() {
                 </Button>
                 <Button
                   className="flex-1"
+                  size="sm"
                   onClick={() => {
                     setShowViewEvidence(false)
                     handleSubmitCounterEvidence(selectedDispute)
                   }}
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Submit Counter-Evidence
+                  <span className="hidden sm:inline">Submit Counter-Evidence</span>
+                  <span className="sm:hidden">Submit Evidence</span>
                 </Button>
               </div>
             </CardContent>
@@ -1785,22 +1790,23 @@ export default function PayrollModule() {
 
       {/* Submit Counter-Evidence Modal */}
       {showSubmitEvidence && selectedDispute && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="flex items-center">
-                    <Upload className="h-5 w-5 mr-2" />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <Card className="w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="flex items-center text-lg sm:text-xl">
+                    <Upload className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
                     Submit Counter-Evidence
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">
                     Upload documents and provide details to support your case
                   </CardDescription>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="flex-shrink-0"
                   onClick={() => {
                     setShowSubmitEvidence(false)
                     setSelectedDispute(null)
@@ -1812,7 +1818,7 @@ export default function PayrollModule() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 sm:space-y-6">
               {/* Dispute Info */}
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">Responding to Dispute</p>
@@ -1908,10 +1914,11 @@ export default function PayrollModule() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-4">
+              <div className="flex flex-col sm:flex-row gap-2 pt-3 sm:pt-4">
                 <Button
                   variant="outline"
                   className="flex-1"
+                  size="sm"
                   onClick={() => {
                     setShowSubmitEvidence(false)
                     setSelectedDispute(null)
@@ -1923,6 +1930,7 @@ export default function PayrollModule() {
                 </Button>
                 <Button
                   className="flex-1"
+                  size="sm"
                   onClick={handleSubmitCounterEvidenceForm}
                   disabled={counterEvidenceFiles.length === 0 && !counterEvidenceNotes.trim()}
                 >
@@ -1937,20 +1945,20 @@ export default function PayrollModule() {
 
       {/* Bulk Upload Modal */}
       {showBulkUpload && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-2xl">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>Bulk Upload Employees</CardTitle>
-                  <CardDescription>Upload CSV or Excel file with employee data</CardDescription>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <Card className="w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-lg sm:text-xl">Bulk Upload Employees</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Upload CSV or Excel file with employee data</CardDescription>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setShowBulkUpload(false)}>
+                <Button variant="ghost" size="sm" className="flex-shrink-0" onClick={() => setShowBulkUpload(false)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4">
               <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
                 <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="font-medium mb-2">Drop your file here or click to browse</p>
