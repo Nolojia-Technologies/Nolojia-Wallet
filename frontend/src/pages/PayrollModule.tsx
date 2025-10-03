@@ -22,6 +22,15 @@ import {
   History,
   ChevronDown,
   ChevronUp,
+  Upload,
+  X,
+  Briefcase,
+  Award,
+  Ban,
+  PlayCircle,
+  PauseCircle,
+  UserCheck,
+  Zap,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -39,23 +48,39 @@ import {
 type Employee = {
   id: string
   name: string
-  userCode: string
-  avatar?: string
+  walletId: string
+  phoneNumber: string
+  email?: string
   role: string
   projectType: 'short-term' | 'long-term' | 'casual'
   payRate: number
-  payFrequency: 'hourly' | 'daily' | 'weekly' | 'monthly'
+  payFrequency: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'per-project'
   totalEarned: number
   totalPaid: number
   pendingAmount: number
+  advanceAmount?: number
   trustScore: number
-  status: 'active' | 'inactive' | 'suspended'
+  employerRating?: number
+  status: 'active' | 'completed' | 'suspended'
   joinedDate: string
+  endDate?: string
   lastPaid?: string
   autoPayEnabled: boolean
   nextPaymentDate?: string
   performanceRating: number
   completedProjects: number
+  disputes: number
+  projectId?: string
+  idUploaded: boolean
+  kraVerified: boolean
+  workHistory: WorkHistoryItem[]
+}
+
+type WorkHistoryItem = {
+  employer: string
+  role: string
+  duration: string
+  rating: number
   disputes: number
 }
 
@@ -66,40 +91,85 @@ type Project = {
   status: 'active' | 'completed' | 'paused'
   budget: number
   spent: number
-  employees: number
+  employees: string[]
   startDate: string
   endDate?: string
   description: string
+  typeOfWork: string
 }
 
 type Dispute = {
   id: string
   employeeId: string
   employeeName: string
+  employerId?: string
   amount: number
   reason: string
+  raisedBy: 'employer' | 'employee'
   status: 'open' | 'in-review' | 'resolved' | 'rejected'
   createdAt: string
   escrowAmount?: number
+  evidence?: string[]
+  resolution?: string
+}
+
+type PaymentRecord = {
+  id: string
+  employeeId: string
+  employeeName: string
+  amount: number
+  type: 'regular' | 'advance' | 'bonus' | 'bulk'
+  status: 'completed' | 'pending' | 'failed'
+  date: string
+  projectId?: string
 }
 
 export default function PayrollModule() {
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [selectedProject, setSelectedProject] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [showAddEmployee, setShowAddEmployee] = useState(false)
   const [showAddProject, setShowAddProject] = useState(false)
+  const [showBulkUpload, setShowBulkUpload] = useState(false)
+  const [showRaiseDispute, setShowRaiseDispute] = useState(false)
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null)
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
+
+  // Form states
+  const [newEmployee, setNewEmployee] = useState({
+    name: '',
+    walletId: '',
+    phoneNumber: '',
+    email: '',
+    role: '',
+    payRate: '',
+    payFrequency: 'monthly' as const,
+    startDate: '',
+    endDate: '',
+    projectId: '',
+  })
+
+  const [newProject, setNewProject] = useState({
+    name: '',
+    type: 'short-term' as const,
+    budget: '',
+    startDate: '',
+    endDate: '',
+    description: '',
+    typeOfWork: '',
+  })
 
   // Mock employer stats
   const employerStats = {
+    totalBudget: 15000000,
+    totalPaid: 12500000,
+    pendingPayments: 145000,
     totalEmployees: 24,
     activeProjects: 5,
     monthlyPayroll: 850000,
-    trustScore: 4.7,
+    trustScore: 87,
     onTimePayments: 96,
-    totalPaid: 12500000,
-    pendingPayments: 145000,
+    disputes: 1,
+    completedProjects: 18,
   }
 
   // Mock employees data
@@ -107,7 +177,9 @@ export default function PayrollModule() {
     {
       id: '1',
       name: 'John Kamau',
-      userCode: 'JK2024',
+      walletId: 'JK2024',
+      phoneNumber: '+254712345678',
+      email: 'john@example.com',
       role: 'Senior Developer',
       projectType: 'long-term',
       payRate: 150000,
@@ -115,7 +187,8 @@ export default function PayrollModule() {
       totalEarned: 1500000,
       totalPaid: 1400000,
       pendingAmount: 100000,
-      trustScore: 4.8,
+      trustScore: 92,
+      employerRating: 4.8,
       status: 'active',
       joinedDate: '2023-06-15',
       lastPaid: '2024-01-31',
@@ -124,11 +197,24 @@ export default function PayrollModule() {
       performanceRating: 4.9,
       completedProjects: 12,
       disputes: 0,
+      projectId: '1',
+      idUploaded: true,
+      kraVerified: true,
+      workHistory: [
+        {
+          employer: 'ABC Corp',
+          role: 'Developer',
+          duration: '2 years',
+          rating: 4.8,
+          disputes: 0,
+        },
+      ],
     },
     {
       id: '2',
       name: 'Mary Wanjiku',
-      userCode: 'MW2024',
+      walletId: 'MW2024',
+      phoneNumber: '+254723456789',
       role: 'UI/UX Designer',
       projectType: 'short-term',
       payRate: 5000,
@@ -136,7 +222,8 @@ export default function PayrollModule() {
       totalEarned: 285000,
       totalPaid: 285000,
       pendingAmount: 0,
-      trustScore: 4.6,
+      trustScore: 85,
+      employerRating: 4.6,
       status: 'active',
       joinedDate: '2024-01-10',
       lastPaid: '2024-02-02',
@@ -144,11 +231,16 @@ export default function PayrollModule() {
       performanceRating: 4.7,
       completedProjects: 3,
       disputes: 0,
+      projectId: '2',
+      idUploaded: true,
+      kraVerified: false,
+      workHistory: [],
     },
     {
       id: '3',
       name: 'Peter Omondi',
-      userCode: 'PO2024',
+      walletId: 'PO2024',
+      phoneNumber: '+254734567890',
       role: 'Casual Laborer',
       projectType: 'casual',
       payRate: 1500,
@@ -156,7 +248,8 @@ export default function PayrollModule() {
       totalEarned: 45000,
       totalPaid: 30000,
       pendingAmount: 15000,
-      trustScore: 4.2,
+      trustScore: 72,
+      employerRating: 4.0,
       status: 'active',
       joinedDate: '2024-02-01',
       lastPaid: '2024-02-01',
@@ -164,6 +257,10 @@ export default function PayrollModule() {
       performanceRating: 4.0,
       completedProjects: 1,
       disputes: 1,
+      projectId: '3',
+      idUploaded: false,
+      kraVerified: false,
+      workHistory: [],
     },
   ]
 
@@ -176,9 +273,10 @@ export default function PayrollModule() {
       status: 'active',
       budget: 2000000,
       spent: 850000,
-      employees: 8,
+      employees: ['1'],
       startDate: '2023-11-01',
       description: 'Complete mobile banking application',
+      typeOfWork: 'Software Development',
     },
     {
       id: '2',
@@ -187,10 +285,11 @@ export default function PayrollModule() {
       status: 'active',
       budget: 500000,
       spent: 285000,
-      employees: 4,
+      employees: ['2'],
       startDate: '2024-01-15',
       endDate: '2024-03-15',
       description: 'Corporate website redesign project',
+      typeOfWork: 'Web Design',
     },
     {
       id: '3',
@@ -199,10 +298,11 @@ export default function PayrollModule() {
       status: 'active',
       budget: 300000,
       spent: 135000,
-      employees: 12,
+      employees: ['3'],
       startDate: '2024-02-01',
       endDate: '2024-02-28',
       description: 'Office interior renovation',
+      typeOfWork: 'Construction',
     },
   ]
 
@@ -214,16 +314,50 @@ export default function PayrollModule() {
       employeeName: 'Peter Omondi',
       amount: 15000,
       reason: 'Payment delay for 10 days work',
+      raisedBy: 'employee',
       status: 'open',
       createdAt: '2024-02-03',
       escrowAmount: 15000,
+      evidence: ['timesheet.pdf', 'photos.jpg'],
+    },
+  ]
+
+  // Mock payment records
+  const paymentRecords: PaymentRecord[] = [
+    {
+      id: '1',
+      employeeId: '1',
+      employeeName: 'John Kamau',
+      amount: 150000,
+      type: 'regular',
+      status: 'completed',
+      date: '2024-01-31',
+      projectId: '1',
+    },
+    {
+      id: '2',
+      employeeId: '2',
+      employeeName: 'Mary Wanjiku',
+      amount: 25000,
+      type: 'advance',
+      status: 'completed',
+      date: '2024-02-01',
+      projectId: '2',
     },
   ]
 
   const getTrustScoreColor = (score: number) => {
-    if (score >= 4.5) return 'text-green-600'
-    if (score >= 3.5) return 'text-yellow-600'
-    return 'text-red-600'
+    if (score >= 80) return 'text-green-600 bg-green-100'
+    if (score >= 60) return 'text-yellow-600 bg-yellow-100'
+    return 'text-red-600 bg-red-100'
+  }
+
+  const getTrustScoreLabel = (score: number) => {
+    if (score >= 90) return 'Excellent'
+    if (score >= 80) return 'Very Good'
+    if (score >= 70) return 'Good'
+    if (score >= 60) return 'Fair'
+    return 'Poor'
   }
 
   const getProjectTypeColor = (type: string) => {
@@ -257,23 +391,50 @@ export default function PayrollModule() {
   const filteredEmployees = employees.filter(
     (emp) =>
       emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.userCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.walletId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.role.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const handleSelectEmployee = (id: string) => {
+    setSelectedEmployees((prev) =>
+      prev.includes(id) ? prev.filter((empId) => empId !== id) : [...prev, id]
+    )
+  }
+
+  const handleBulkPayment = () => {
+    // Implementation for bulk payment
+    alert(`Processing payment for ${selectedEmployees.length} employees`)
+  }
+
+  const handleAddEmployee = () => {
+    // Implementation for adding employee
+    console.log('Adding employee:', newEmployee)
+    setShowAddEmployee(false)
+  }
+
+  const handleAddProject = () => {
+    // Implementation for adding project
+    console.log('Adding project:', newProject)
+    setShowAddProject(false)
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Payroll Management</h1>
           <p className="text-muted-foreground mt-1">
-            Manage employees, projects, and payments with trust-based system
+            Complete payroll system with trust scores and dispute resolution
           </p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setShowBulkUpload(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Bulk Upload
+          </Button>
           <Button variant="outline" onClick={() => setShowAddProject(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+            <Briefcase className="h-4 w-4 mr-2" />
             Add Project
           </Button>
           <Button onClick={() => setShowAddEmployee(true)}>
@@ -283,22 +444,79 @@ export default function PayrollModule() {
         </div>
       </div>
 
-      {/* Employer Trust Score Card */}
+      {/* Key Metrics Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Budget</p>
+                <p className="text-2xl font-bold">
+                  KES {employerStats.totalBudget.toLocaleString()}
+                </p>
+              </div>
+              <DollarSign className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Paid</p>
+                <p className="text-2xl font-bold text-green-600">
+                  KES {employerStats.totalPaid.toLocaleString()}
+                </p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  KES {employerStats.pendingPayments.toLocaleString()}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Active Employees</p>
+                <p className="text-2xl font-bold">{employerStats.totalEmployees}</p>
+              </div>
+              <Users className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Employer Trust Score */}
       <Card className="bg-gradient-to-r from-kenya-red to-red-600 text-white">
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-white text-2xl flex items-center">
                 Employer Trust Score
-                <Star className="h-6 w-6 ml-2 fill-yellow-400 text-yellow-400" />
+                <Award className="h-6 w-6 ml-2" />
               </CardTitle>
               <CardDescription className="text-white/80">
-                Based on payment history and employee ratings
+                Your reputation as an employer (0-100 scale)
               </CardDescription>
             </div>
             <div className="text-right">
-              <div className="text-4xl font-bold">{employerStats.trustScore}</div>
-              <div className="text-sm text-white/80">out of 5.0</div>
+              <div className="text-5xl font-bold">{employerStats.trustScore}</div>
+              <div className="text-sm text-white/80">{getTrustScoreLabel(employerStats.trustScore)}</div>
             </div>
           </div>
         </CardHeader>
@@ -309,28 +527,36 @@ export default function PayrollModule() {
               <div className="text-2xl font-bold">{employerStats.onTimePayments}%</div>
             </div>
             <div>
-              <div className="text-white/80 text-sm">Total Paid</div>
-              <div className="text-2xl font-bold">
-                KES {(employerStats.totalPaid / 1000000).toFixed(1)}M
+              <div className="text-white/80 text-sm">Completed Projects</div>
+              <div className="text-2xl font-bold">{employerStats.completedProjects}</div>
+            </div>
+            <div>
+              <div className="text-white/80 text-sm">Active Disputes</div>
+              <div className="text-2xl font-bold">{employerStats.disputes}</div>
+            </div>
+            <div>
+              <div className="text-white/80 text-sm">Employee Rating</div>
+              <div className="text-2xl font-bold flex items-center">
+                <Star className="h-5 w-5 mr-1 fill-yellow-400 text-yellow-400" />
+                4.7/5.0
               </div>
             </div>
-            <div>
-              <div className="text-white/80 text-sm">Active Employees</div>
-              <div className="text-2xl font-bold">{employerStats.totalEmployees}</div>
-            </div>
-            <div>
-              <div className="text-white/80 text-sm">Active Projects</div>
-              <div className="text-2xl font-bold">{employerStats.activeProjects}</div>
-            </div>
+          </div>
+          <div className="mt-4 p-3 bg-white/10 rounded-lg">
+            <p className="text-sm text-white/90">
+              💡 Your trust score affects your ability to hire top talent. Keep it high by paying on
+              time and resolving disputes fairly.
+            </p>
           </div>
         </CardContent>
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
+          <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="disputes">
             Disputes
             {disputes.filter((d) => d.status === 'open').length > 0 && (
@@ -343,69 +569,82 @@ export default function PayrollModule() {
 
         {/* Dashboard Tab */}
         <TabsContent value="dashboard" className="space-y-6">
-          {/* Quick Stats */}
+          {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Monthly Payroll</p>
-                    <p className="text-2xl font-bold">
-                      KES {employerStats.monthlyPayroll.toLocaleString()}
-                    </p>
+                <div className="text-center space-y-2">
+                  <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                    <Zap className="h-6 w-6 text-blue-600" />
                   </div>
-                  <DollarSign className="h-8 w-8 text-green-600" />
+                  <h3 className="font-semibold">One-Click Pay All</h3>
+                  <p className="text-sm text-muted-foreground">Pay all active employees</p>
+                  <Button variant="outline" size="sm" className="w-full">
+                    Pay All ({employees.filter((e) => e.status === 'active').length})
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pending Payments</p>
-                    <p className="text-2xl font-bold">
-                      KES {employerStats.pendingPayments.toLocaleString()}
-                    </p>
+                <div className="text-center space-y-2">
+                  <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                    <Calendar className="h-6 w-6 text-green-600" />
                   </div>
-                  <Clock className="h-8 w-8 text-orange-600" />
+                  <h3 className="font-semibold">Auto-Scheduled</h3>
+                  <p className="text-sm text-muted-foreground">Setup automatic payments</p>
+                  <Button variant="outline" size="sm" className="w-full">
+                    Configure
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Employees</p>
-                    <p className="text-2xl font-bold">{employerStats.totalEmployees}</p>
+                <div className="text-center space-y-2">
+                  <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
+                    <Download className="h-6 w-6 text-purple-600" />
                   </div>
-                  <Users className="h-8 w-8 text-blue-600" />
+                  <h3 className="font-semibold">Generate Report</h3>
+                  <p className="text-sm text-muted-foreground">Download payroll reports</p>
+                  <Button variant="outline" size="sm" className="w-full">
+                    Download
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Active Projects</p>
-                    <p className="text-2xl font-bold">{employerStats.activeProjects}</p>
+                <div className="text-center space-y-2">
+                  <div className="h-12 w-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+                    <Upload className="h-6 w-6 text-orange-600" />
                   </div>
-                  <TrendingUp className="h-8 w-8 text-purple-600" />
+                  <h3 className="font-semibold">Bulk Upload</h3>
+                  <p className="text-sm text-muted-foreground">Upload CSV/Excel</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setShowBulkUpload(true)}
+                  >
+                    Upload File
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Upcoming Payments */}
+          {/* Upcoming Scheduled Payments */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Calendar className="h-5 w-5 mr-2" />
-                Upcoming Scheduled Payments
+                Auto-Scheduled Payments
               </CardTitle>
-              <CardDescription>Auto-scheduled payments for the next 7 days</CardDescription>
+              <CardDescription>Employees with automatic payment enabled</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -426,7 +665,7 @@ export default function PayrollModule() {
                         <div>
                           <p className="font-medium">{emp.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {emp.role} • {emp.userCode}
+                            {emp.role} • {emp.walletId}
                           </p>
                         </div>
                       </div>
@@ -438,6 +677,7 @@ export default function PayrollModule() {
                         </p>
                       </div>
                       <Badge variant="outline" className="ml-4">
+                        <Zap className="h-3 w-3 mr-1" />
                         Auto-pay
                       </Badge>
                     </div>
@@ -446,69 +686,52 @@ export default function PayrollModule() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="text-center space-y-2">
-                  <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                    <Send className="h-6 w-6 text-blue-600" />
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Payment Activity</CardTitle>
+              <CardDescription>Last 5 transactions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {paymentRecords.slice(0, 5).map((payment) => (
+                  <div
+                    key={payment.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div>
+                      <p className="font-medium">{payment.employeeName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(payment.date).toLocaleDateString()} •{' '}
+                        <Badge variant="outline" className="ml-1">
+                          {payment.type}
+                        </Badge>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">KES {payment.amount.toLocaleString()}</p>
+                      <Badge
+                        variant={payment.status === 'completed' ? 'default' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {payment.status}
+                      </Badge>
+                    </div>
                   </div>
-                  <h3 className="font-semibold">Bulk Payment</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Pay multiple employees at once
-                  </p>
-                  <Button variant="outline" size="sm" className="w-full">
-                    Start Bulk Pay
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="text-center space-y-2">
-                  <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                    <FileText className="h-6 w-6 text-green-600" />
-                  </div>
-                  <h3 className="font-semibold">Generate Report</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Download payroll reports
-                  </p>
-                  <Button variant="outline" size="sm" className="w-full">
-                    Download
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="text-center space-y-2">
-                  <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
-                    <Calendar className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <h3 className="font-semibold">Set Schedule</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Configure auto-payments
-                  </p>
-                  <Button variant="outline" size="sm" className="w-full">
-                    Configure
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Employees Tab */}
         <TabsContent value="employees" className="space-y-4">
-          {/* Search and Filter */}
-          <div className="flex space-x-2">
+          {/* Search, Filter and Bulk Actions */}
+          <div className="flex flex-col md:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search employees by name, code, or role..."
+                placeholder="Search by name, wallet ID, or role..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -518,6 +741,12 @@ export default function PayrollModule() {
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
+            {selectedEmployees.length > 0 && (
+              <Button onClick={handleBulkPayment}>
+                <Send className="h-4 w-4 mr-2" />
+                Pay Selected ({selectedEmployees.length})
+              </Button>
+            )}
           </div>
 
           {/* Employee Cards */}
@@ -526,28 +755,48 @@ export default function PayrollModule() {
               <Card key={employee.id} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    {/* Employee Header */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-4">
+                    {/* Employee Header with Checkbox */}
+                    <div className="flex items-start gap-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedEmployees.includes(employee.id)}
+                        onChange={() => handleSelectEmployee(employee.id)}
+                        className="mt-6 h-4 w-4"
+                      />
+                      <div className="flex items-center space-x-4 flex-1">
                         <div className="h-16 w-16 bg-gradient-to-br from-kenya-red to-red-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
                           {employee.name
                             .split(' ')
                             .map((n) => n[0])
                             .join('')}
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <h3 className="text-xl font-semibold">{employee.name}</h3>
                           <p className="text-muted-foreground">{employee.role}</p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Badge variant="outline">{employee.userCode}</Badge>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <Badge variant="outline">ID: {employee.walletId}</Badge>
+                            <Badge variant="outline">{employee.phoneNumber}</Badge>
                             <Badge className={getProjectTypeColor(employee.projectType)}>
                               {employee.projectType}
                             </Badge>
-                            <Badge
-                              variant={employee.status === 'active' ? 'default' : 'secondary'}
-                            >
-                              {employee.status}
-                            </Badge>
+                            {employee.status === 'active' && (
+                              <Badge variant="default">
+                                <PlayCircle className="h-3 w-3 mr-1" />
+                                Active
+                              </Badge>
+                            )}
+                            {employee.status === 'suspended' && (
+                              <Badge variant="destructive">
+                                <Ban className="h-3 w-3 mr-1" />
+                                Suspended
+                              </Badge>
+                            )}
+                            {employee.status === 'completed' && (
+                              <Badge variant="secondary">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Completed
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -565,8 +814,18 @@ export default function PayrollModule() {
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <History className="h-4 w-4 mr-2" />
-                            Payment History
+                            Work History
                           </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <FileText className="h-4 w-4 mr-2" />
+                            View Documents
+                          </DropdownMenuItem>
+                          {employee.status === 'active' && (
+                            <DropdownMenuItem>
+                              <PauseCircle className="h-4 w-4 mr-2" />
+                              Suspend Employee
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem className="text-red-600">
                             <Trash2 className="h-4 w-4 mr-2" />
                             Remove Employee
@@ -575,7 +834,39 @@ export default function PayrollModule() {
                       </DropdownMenu>
                     </div>
 
-                    {/* Employee Stats */}
+                    {/* Trust Score & Verification */}
+                    <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Trust Score</span>
+                          <Badge className={getTrustScoreColor(employee.trustScore)}>
+                            {employee.trustScore}/100
+                          </Badge>
+                        </div>
+                        <div className="w-full bg-background rounded-full h-2">
+                          <div
+                            className="bg-kenya-red h-2 rounded-full"
+                            style={{ width: `${employee.trustScore}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {employee.idUploaded && (
+                          <Badge variant="outline" className="bg-green-50">
+                            <UserCheck className="h-3 w-3 mr-1 text-green-600" />
+                            ID Verified
+                          </Badge>
+                        )}
+                        {employee.kraVerified && (
+                          <Badge variant="outline" className="bg-blue-50">
+                            <Shield className="h-3 w-3 mr-1 text-blue-600" />
+                            KRA
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Pay Agreement & Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Pay Rate</p>
@@ -587,51 +878,58 @@ export default function PayrollModule() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Pending Amount</p>
+                        <p className="text-sm text-muted-foreground">Pending</p>
                         <p className="font-semibold text-orange-600">
                           KES {employee.pendingAmount.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Trust Score</p>
-                        <p className={`font-semibold flex items-center ${getTrustScoreColor(employee.trustScore)}`}>
-                          <Star className="h-4 w-4 mr-1 fill-current" />
-                          {employee.trustScore}/5.0
+                        <p className="text-sm text-muted-foreground">Total Paid</p>
+                        <p className="font-semibold text-green-600">
+                          KES {employee.totalPaid.toLocaleString()}
                         </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Performance</p>
                         <p className="font-semibold flex items-center">
+                          <Star className="h-4 w-4 mr-1 text-yellow-500 fill-yellow-500" />
                           {employee.performanceRating}/5.0
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Projects Done</p>
-                        <p className="font-semibold">{employee.completedProjects}</p>
+                        <p className="text-sm text-muted-foreground">Disputes</p>
+                        <p
+                          className={`font-semibold ${employee.disputes > 0 ? 'text-red-600' : 'text-green-600'}`}
+                        >
+                          {employee.disputes}
+                        </p>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center justify-between pt-4 border-t">
-                      <div className="flex space-x-2">
-                        <Button size="sm">
-                          <Send className="h-4 w-4 mr-2" />
-                          Pay Now
+                    <div className="flex flex-wrap items-center gap-2 pt-4 border-t">
+                      <Button size="sm">
+                        <Send className="h-4 w-4 mr-2" />
+                        Pay Now
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Advance Payment (50%)
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Schedule
+                      </Button>
+                      {employee.disputes > 0 && (
+                        <Button variant="destructive" size="sm">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          View Dispute
                         </Button>
-                        <Button variant="outline" size="sm">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Schedule Payment
-                        </Button>
-                        {employee.disputes > 0 && (
-                          <Button variant="destructive" size="sm">
-                            <AlertCircle className="h-4 w-4 mr-2" />
-                            View Dispute
-                          </Button>
-                        )}
-                      </div>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="ml-auto"
                         onClick={() =>
                           setExpandedEmployee(
                             expandedEmployee === employee.id ? null : employee.id
@@ -641,66 +939,48 @@ export default function PayrollModule() {
                         {expandedEmployee === employee.id ? (
                           <>
                             <ChevronUp className="h-4 w-4 mr-2" />
-                            Less Details
+                            Less
                           </>
                         ) : (
                           <>
                             <ChevronDown className="h-4 w-4 mr-2" />
-                            More Details
+                            More
                           </>
                         )}
                       </Button>
                     </div>
 
-                    {/* Expanded Details */}
+                    {/* Expanded Work History */}
                     {expandedEmployee === employee.id && (
                       <div className="pt-4 border-t space-y-3">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">Total Earned</p>
-                            <p className="font-medium">
-                              KES {employee.totalEarned.toLocaleString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Total Paid</p>
-                            <p className="font-medium">
-                              KES {employee.totalPaid.toLocaleString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Joined Date</p>
-                            <p className="font-medium">
-                              {new Date(employee.joinedDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Last Paid</p>
-                            <p className="font-medium">
-                              {employee.lastPaid
-                                ? new Date(employee.lastPaid).toLocaleDateString()
-                                : 'Never'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={employee.autoPayEnabled}
-                              className="h-4 w-4"
-                              readOnly
-                            />
-                            <span className="text-sm font-medium">
-                              Automatic payments enabled
-                            </span>
-                          </div>
-                          {employee.nextPaymentDate && (
-                            <span className="text-sm text-muted-foreground">
-                              Next: {new Date(employee.nextPaymentDate).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
+                        <h4 className="font-semibold">Work History Ledger</h4>
+                        {employee.workHistory.length > 0 ? (
+                          employee.workHistory.map((history, idx) => (
+                            <div key={idx} className="p-3 bg-muted rounded-lg">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium">{history.employer}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {history.role} • {history.duration}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <div className="flex items-center">
+                                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-1" />
+                                    <span className="font-medium">{history.rating}/5.0</span>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    {history.disputes} disputes
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            No previous work history available
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -720,7 +1000,7 @@ export default function PayrollModule() {
                     <div>
                       <CardTitle>{project.name}</CardTitle>
                       <CardDescription className="mt-1">
-                        {project.description}
+                        {project.typeOfWork} • {project.description}
                       </CardDescription>
                     </div>
                     <Badge
@@ -738,9 +1018,7 @@ export default function PayrollModule() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Budget</p>
-                      <p className="font-semibold">
-                        KES {project.budget.toLocaleString()}
-                      </p>
+                      <p className="font-semibold">KES {project.budget.toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Spent</p>
@@ -750,13 +1028,11 @@ export default function PayrollModule() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Employees</p>
-                      <p className="font-semibold">{project.employees}</p>
+                      <p className="font-semibold">{project.employees.length}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Status</p>
-                      <Badge
-                        variant={project.status === 'active' ? 'default' : 'secondary'}
-                      >
+                      <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
                         {project.status}
                       </Badge>
                     </div>
@@ -779,24 +1055,21 @@ export default function PayrollModule() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Started: {new Date(project.startDate).toLocaleDateString()}
-                    </span>
-                    {project.endDate && (
-                      <span className="text-muted-foreground">
-                        Ends: {new Date(project.endDate).toLocaleDateString()}
-                      </span>
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Button variant="outline" size="sm">
+                      <Users className="h-4 w-4 mr-2" />
+                      View Team ({project.employees.length})
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Employee
+                    </Button>
+                    {project.status === 'active' && (
+                      <Button variant="outline" size="sm">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Close Project
+                      </Button>
                     )}
-                  </div>
-
-                  <div className="flex space-x-2 pt-2">
-                    <Button variant="outline" size="sm" className="flex-1">
-                      View Team
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
-                      Manage
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -804,8 +1077,62 @@ export default function PayrollModule() {
           </div>
         </TabsContent>
 
+        {/* Payments Tab */}
+        <TabsContent value="payments" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment History</CardTitle>
+              <CardDescription>All payment transactions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {paymentRecords.map((payment) => (
+                  <div
+                    key={payment.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{payment.employeeName}</p>
+                        <Badge variant="outline">{payment.type}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(payment.date).toLocaleDateString()} •{' '}
+                        {new Date(payment.date).toLocaleTimeString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-lg">
+                        KES {payment.amount.toLocaleString()}
+                      </p>
+                      <Badge
+                        variant={payment.status === 'completed' ? 'default' : 'secondary'}
+                      >
+                        {payment.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Disputes Tab */}
         <TabsContent value="disputes" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold">Dispute Resolution Center</h3>
+              <p className="text-sm text-muted-foreground">
+                Manage disputes with escrow protection
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => setShowRaiseDispute(true)}>
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Raise Dispute
+            </Button>
+          </div>
+
           {disputes.length > 0 ? (
             disputes.map((dispute) => (
               <Card key={dispute.id} className="border-red-200">
@@ -817,8 +1144,8 @@ export default function PayrollModule() {
                         Dispute #{dispute.id}
                       </CardTitle>
                       <CardDescription className="mt-1">
-                        Raised by {dispute.employeeName} on{' '}
-                        {new Date(dispute.createdAt).toLocaleDateString()}
+                        Raised by {dispute.raisedBy === 'employee' ? dispute.employeeName : 'You'}{' '}
+                        on {new Date(dispute.createdAt).toLocaleDateString()}
                       </CardDescription>
                     </div>
                     <Badge className={getDisputeStatusColor(dispute.status)}>
@@ -827,7 +1154,7 @@ export default function PayrollModule() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="p-4 bg-red-50 rounded-lg">
+                  <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-100">
                     <p className="font-medium mb-2">Dispute Reason:</p>
                     <p className="text-sm text-muted-foreground">{dispute.reason}</p>
                   </div>
@@ -849,35 +1176,53 @@ export default function PayrollModule() {
                     )}
                   </div>
 
+                  {dispute.evidence && dispute.evidence.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium mb-2">Evidence Submitted:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {dispute.evidence.map((file, idx) => (
+                          <Badge key={idx} variant="outline">
+                            <FileText className="h-3 w-3 mr-1" />
+                            {file}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {dispute.status === 'open' && (
-                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <div className="bg-yellow-50 dark:bg-yellow-950/20 p-4 rounded-lg border border-yellow-200">
                       <div className="flex items-start space-x-2">
                         <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
                         <div className="flex-1">
-                          <p className="font-medium text-yellow-900">
-                            Amount held in escrow
+                          <p className="font-medium text-yellow-900 dark:text-yellow-400">
+                            Funds Held in Escrow
                           </p>
-                          <p className="text-sm text-yellow-700 mt-1">
-                            The disputed amount has been moved to escrow until resolution.
-                            Please review and respond to the dispute.
+                          <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                            The disputed amount has been moved to escrow and frozen until
+                            resolution. Please review the evidence and respond appropriately.
                           </p>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  <div className="flex space-x-2 pt-2">
+                  <div className="flex flex-wrap gap-2 pt-2">
                     <Button className="flex-1">
                       <CheckCircle className="h-4 w-4 mr-2" />
-                      Approve & Pay
+                      Approve & Release Funds
                     </Button>
                     <Button variant="outline" className="flex-1">
                       <FileText className="h-4 w-4 mr-2" />
-                      View Evidence
+                      View All Evidence
+                    </Button>
+                    <Button variant="outline" className="flex-1">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Submit Counter-Evidence
                     </Button>
                     <Button variant="destructive" className="flex-1">
                       <XCircle className="h-4 w-4 mr-2" />
-                      Reject
+                      Reject Dispute
                     </Button>
                   </div>
                 </CardContent>
@@ -896,6 +1241,330 @@ export default function PayrollModule() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Add Employee Modal */}
+      {showAddEmployee && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>Add New Employee</CardTitle>
+                  <CardDescription>Fill in employee details and pay agreement</CardDescription>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowAddEmployee(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name *</Label>
+                  <Input
+                    id="name"
+                    value={newEmployee.name}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="walletId">Wallet ID / User Code *</Label>
+                  <Input
+                    id="walletId"
+                    value={newEmployee.walletId}
+                    onChange={(e) =>
+                      setNewEmployee({ ...newEmployee, walletId: e.target.value })
+                    }
+                    placeholder="JD2024"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Phone Number *</Label>
+                  <Input
+                    id="phoneNumber"
+                    value={newEmployee.phoneNumber}
+                    onChange={(e) =>
+                      setNewEmployee({ ...newEmployee, phoneNumber: e.target.value })
+                    }
+                    placeholder="+254712345678"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email (Optional)</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newEmployee.email}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
+                    placeholder="john@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role / Position *</Label>
+                  <Input
+                    id="role"
+                    value={newEmployee.role}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, role: e.target.value })}
+                    placeholder="Software Developer"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="payRate">Pay Rate (KES) *</Label>
+                  <Input
+                    id="payRate"
+                    type="number"
+                    value={newEmployee.payRate}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, payRate: e.target.value })}
+                    placeholder="50000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="payFrequency">Pay Frequency *</Label>
+                  <select
+                    id="payFrequency"
+                    className="w-full border rounded-md p-2"
+                    value={newEmployee.payFrequency}
+                    onChange={(e) =>
+                      setNewEmployee({
+                        ...newEmployee,
+                        payFrequency: e.target.value as any,
+                      })
+                    }
+                  >
+                    <option value="hourly">Hourly</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="per-project">Per Project</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="projectId">Assign to Project (Optional)</Label>
+                  <select
+                    id="projectId"
+                    className="w-full border rounded-md p-2"
+                    value={newEmployee.projectId}
+                    onChange={(e) =>
+                      setNewEmployee({ ...newEmployee, projectId: e.target.value })
+                    }
+                  >
+                    <option value="">None</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">Start Date *</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={newEmployee.startDate}
+                    onChange={(e) =>
+                      setNewEmployee({ ...newEmployee, startDate: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endDate">End Date (Optional)</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={newEmployee.endDate}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, endDate: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200">
+                <h4 className="font-medium mb-2">Trust Verification (Optional)</h4>
+                <div className="space-y-2">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload ID Document
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload KRA PIN Certificate
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button variant="outline" className="flex-1" onClick={() => setShowAddEmployee(false)}>
+                  Cancel
+                </Button>
+                <Button className="flex-1" onClick={handleAddEmployee}>
+                  Add Employee
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Add Project Modal */}
+      {showAddProject && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-2xl">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>Create New Project</CardTitle>
+                  <CardDescription>
+                    Set up a new project and manage its workforce
+                  </CardDescription>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowAddProject(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="projectName">Project Name *</Label>
+                  <Input
+                    id="projectName"
+                    value={newProject.name}
+                    onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                    placeholder="Website Development Project"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="projectType">Project Type *</Label>
+                  <select
+                    id="projectType"
+                    className="w-full border rounded-md p-2"
+                    value={newProject.type}
+                    onChange={(e) => setNewProject({ ...newProject, type: e.target.value as any })}
+                  >
+                    <option value="short-term">Short-term</option>
+                    <option value="long-term">Long-term</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="projectBudget">Budget (KES) *</Label>
+                  <Input
+                    id="projectBudget"
+                    type="number"
+                    value={newProject.budget}
+                    onChange={(e) => setNewProject({ ...newProject, budget: e.target.value })}
+                    placeholder="500000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="projectStartDate">Start Date *</Label>
+                  <Input
+                    id="projectStartDate"
+                    type="date"
+                    value={newProject.startDate}
+                    onChange={(e) => setNewProject({ ...newProject, startDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="projectEndDate">End Date (Optional)</Label>
+                  <Input
+                    id="projectEndDate"
+                    type="date"
+                    value={newProject.endDate}
+                    onChange={(e) => setNewProject({ ...newProject, endDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="typeOfWork">Type of Work *</Label>
+                  <Input
+                    id="typeOfWork"
+                    value={newProject.typeOfWork}
+                    onChange={(e) => setNewProject({ ...newProject, typeOfWork: e.target.value })}
+                    placeholder="Software Development, Construction, etc."
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="projectDescription">Description *</Label>
+                  <textarea
+                    id="projectDescription"
+                    className="w-full border rounded-md p-2 min-h-[100px]"
+                    value={newProject.description}
+                    onChange={(e) =>
+                      setNewProject({ ...newProject, description: e.target.value })
+                    }
+                    placeholder="Brief description of the project..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowAddProject(false)}
+                >
+                  Cancel
+                </Button>
+                <Button className="flex-1" onClick={handleAddProject}>
+                  Create Project
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {showBulkUpload && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-2xl">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>Bulk Upload Employees</CardTitle>
+                  <CardDescription>Upload CSV or Excel file with employee data</CardDescription>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowBulkUpload(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="font-medium mb-2">Drop your file here or click to browse</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Supports CSV and Excel (.xlsx) files
+                </p>
+                <Button variant="outline">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Choose File
+                </Button>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200">
+                <h4 className="font-semibold mb-2">Required Columns:</h4>
+                <ul className="text-sm space-y-1 text-muted-foreground">
+                  <li>• Full Name</li>
+                  <li>• Wallet ID / User Code</li>
+                  <li>• Phone Number (+254XXXXXXXXX)</li>
+                  <li>• Role / Position</li>
+                  <li>• Pay Rate (KES)</li>
+                  <li>• Pay Frequency (hourly/daily/weekly/monthly/per-project)</li>
+                  <li>• Start Date (YYYY-MM-DD)</li>
+                  <li>• Email (Optional)</li>
+                  <li>• End Date (Optional)</li>
+                </ul>
+              </div>
+
+              <Button variant="outline" size="sm" className="w-full">
+                <Download className="h-4 w-4 mr-2" />
+                Download Template
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
