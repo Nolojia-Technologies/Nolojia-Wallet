@@ -462,25 +462,28 @@ export default function PayrollModule() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Payroll Management</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Payroll Management</h1>
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
             Complete payroll system with trust scores and dispute resolution
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setShowBulkUpload(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Bulk Upload
+          <Button variant="outline" size="sm" onClick={() => setShowBulkUpload(true)}>
+            <Upload className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Bulk Upload</span>
+            <span className="sm:hidden">Upload</span>
           </Button>
-          <Button variant="outline" onClick={() => setShowAddProject(true)}>
-            <Briefcase className="h-4 w-4 mr-2" />
-            Add Project
+          <Button variant="outline" size="sm" onClick={() => setShowAddProject(true)}>
+            <Briefcase className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Add Project</span>
+            <span className="sm:hidden">Project</span>
           </Button>
-          <Button onClick={() => setShowAddEmployee(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Employee
+          <Button size="sm" onClick={() => setShowAddEmployee(true)}>
+            <Plus className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Add Employee</span>
+            <span className="sm:hidden">Employee</span>
           </Button>
         </div>
       </div>
@@ -545,46 +548,47 @@ export default function PayrollModule() {
       {/* Employer Trust Score */}
       <Card className="bg-gradient-to-r from-kenya-red to-red-600 text-white">
         <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-white text-2xl flex items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div className="flex-1">
+              <CardTitle className="text-white text-xl md:text-2xl flex items-center flex-wrap">
                 Employer Trust Score
-                <Award className="h-6 w-6 ml-2" />
+                <Award className="h-5 w-5 md:h-6 md:w-6 ml-2" />
               </CardTitle>
-              <CardDescription className="text-white/80">
+              <CardDescription className="text-white/80 text-sm">
                 Your reputation as an employer (0-100 scale)
               </CardDescription>
             </div>
-            <div className="text-right">
-              <div className="text-5xl font-bold">{employerStats.trustScore}</div>
+            <div className="text-left sm:text-right">
+              <div className="text-4xl md:text-5xl font-bold">{employerStats.trustScore}</div>
               <div className="text-sm text-white/80">{getTrustScoreLabel(employerStats.trustScore)}</div>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <div>
-              <div className="text-white/80 text-sm">On-time Payments</div>
-              <div className="text-2xl font-bold">{employerStats.onTimePayments}%</div>
+              <div className="text-white/80 text-xs md:text-sm">On-time Payments</div>
+              <div className="text-xl md:text-2xl font-bold">{employerStats.onTimePayments}%</div>
             </div>
             <div>
-              <div className="text-white/80 text-sm">Completed Projects</div>
-              <div className="text-2xl font-bold">{employerStats.completedProjects}</div>
+              <div className="text-white/80 text-xs md:text-sm">Completed Projects</div>
+              <div className="text-xl md:text-2xl font-bold">{employerStats.completedProjects}</div>
             </div>
             <div>
-              <div className="text-white/80 text-sm">Active Disputes</div>
-              <div className="text-2xl font-bold">{employerStats.disputes}</div>
+              <div className="text-white/80 text-xs md:text-sm">Active Disputes</div>
+              <div className="text-xl md:text-2xl font-bold">{employerStats.disputes}</div>
             </div>
             <div>
-              <div className="text-white/80 text-sm">Employee Rating</div>
-              <div className="text-2xl font-bold flex items-center">
-                <Star className="h-5 w-5 mr-1 fill-yellow-400 text-yellow-400" />
-                4.7/5.0
+              <div className="text-white/80 text-xs md:text-sm">Employee Rating</div>
+              <div className="text-xl md:text-2xl font-bold flex items-center">
+                <Star className="h-4 w-4 md:h-5 md:w-5 mr-1 fill-yellow-400 text-yellow-400" />
+                <span className="hidden sm:inline">4.7/5.0</span>
+                <span className="sm:hidden">4.7</span>
               </div>
             </div>
           </div>
           <div className="mt-4 p-3 bg-white/10 rounded-lg">
-            <p className="text-sm text-white/90">
+            <p className="text-xs md:text-sm text-white/90">
               💡 Your trust score affects your ability to hire top talent. Keep it high by paying on
               time and resolving disputes fairly.
             </p>
@@ -593,15 +597,28 @@ export default function PayrollModule() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="employees">Employees</TabsTrigger>
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="disputes">
-            Disputes
+        <TabsList className="grid w-full grid-cols-5 h-auto">
+          <TabsTrigger value="dashboard" className="text-xs md:text-sm px-2 py-2">
+            <span className="hidden sm:inline">Dashboard</span>
+            <span className="sm:hidden">Home</span>
+          </TabsTrigger>
+          <TabsTrigger value="employees" className="text-xs md:text-sm px-2 py-2">
+            <span className="hidden sm:inline">Employees</span>
+            <span className="sm:hidden">Staff</span>
+          </TabsTrigger>
+          <TabsTrigger value="projects" className="text-xs md:text-sm px-2 py-2">
+            <span className="hidden sm:inline">Projects</span>
+            <span className="sm:hidden">Tasks</span>
+          </TabsTrigger>
+          <TabsTrigger value="payments" className="text-xs md:text-sm px-2 py-2">
+            <span className="hidden sm:inline">Payments</span>
+            <span className="sm:hidden">Pay</span>
+          </TabsTrigger>
+          <TabsTrigger value="disputes" className="text-xs md:text-sm px-2 py-2 relative">
+            <span className="hidden sm:inline">Disputes</span>
+            <span className="sm:hidden">Issues</span>
             {disputes.filter((d) => d.status === 'open').length > 0 && (
-              <Badge variant="destructive" className="ml-2">
+              <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">
                 {disputes.filter((d) => d.status === 'open').length}
               </Badge>
             )}
@@ -694,33 +711,35 @@ export default function PayrollModule() {
                   .map((emp) => (
                     <div
                       key={emp.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 border rounded-lg gap-3"
                     >
-                      <div className="flex items-center space-x-4">
-                        <div className="h-10 w-10 bg-gradient-to-br from-kenya-red to-red-600 rounded-full flex items-center justify-center text-white font-semibold">
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <div className="h-10 w-10 flex-shrink-0 bg-gradient-to-br from-kenya-red to-red-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
                           {emp.name
                             .split(' ')
                             .map((n) => n[0])
                             .join('')}
                         </div>
-                        <div>
-                          <p className="font-medium">{emp.name}</p>
-                          <p className="text-sm text-muted-foreground">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate">{emp.name}</p>
+                          <p className="text-xs md:text-sm text-muted-foreground truncate">
                             {emp.role} • {emp.walletId}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold">KES {emp.payRate.toLocaleString()}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {emp.nextPaymentDate &&
-                            new Date(emp.nextPaymentDate).toLocaleDateString()}
-                        </p>
+                      <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                        <div className="text-left sm:text-right">
+                          <p className="font-semibold text-sm md:text-base">KES {emp.payRate.toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {emp.nextPaymentDate &&
+                              new Date(emp.nextPaymentDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          <Zap className="h-3 w-3 mr-1" />
+                          Auto
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className="ml-4">
-                        <Zap className="h-3 w-3 mr-1" />
-                        Auto-pay
-                      </Badge>
                     </div>
                   ))}
               </div>
@@ -797,43 +816,43 @@ export default function PayrollModule() {
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     {/* Employee Header with Checkbox */}
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-2 md:gap-4">
                       <input
                         type="checkbox"
                         checked={selectedEmployees.includes(employee.id)}
                         onChange={() => handleSelectEmployee(employee.id)}
-                        className="mt-6 h-4 w-4"
+                        className="mt-4 md:mt-6 h-4 w-4 flex-shrink-0"
                       />
-                      <div className="flex items-center space-x-4 flex-1">
-                        <div className="h-16 w-16 bg-gradient-to-br from-kenya-red to-red-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                        <div className="h-12 w-12 md:h-16 md:w-16 flex-shrink-0 bg-gradient-to-br from-kenya-red to-red-600 rounded-full flex items-center justify-center text-white text-base md:text-xl font-bold">
                           {employee.name
                             .split(' ')
                             .map((n) => n[0])
                             .join('')}
                         </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-semibold">{employee.name}</h3>
-                          <p className="text-muted-foreground">{employee.role}</p>
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
-                            <Badge variant="outline">ID: {employee.walletId}</Badge>
-                            <Badge variant="outline">{employee.phoneNumber}</Badge>
-                            <Badge className={getProjectTypeColor(employee.projectType)}>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg md:text-xl font-semibold truncate">{employee.name}</h3>
+                          <p className="text-sm md:text-base text-muted-foreground truncate">{employee.role}</p>
+                          <div className="flex flex-wrap items-center gap-1.5 md:gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">ID: {employee.walletId}</Badge>
+                            <Badge variant="outline" className="text-xs hidden sm:inline-flex">{employee.phoneNumber}</Badge>
+                            <Badge className={`${getProjectTypeColor(employee.projectType)} text-xs`}>
                               {employee.projectType}
                             </Badge>
                             {employee.status === 'active' && (
-                              <Badge variant="default">
+                              <Badge variant="default" className="text-xs">
                                 <PlayCircle className="h-3 w-3 mr-1" />
                                 Active
                               </Badge>
                             )}
                             {employee.status === 'suspended' && (
-                              <Badge variant="destructive">
+                              <Badge variant="destructive" className="text-xs">
                                 <Ban className="h-3 w-3 mr-1" />
                                 Suspended
                               </Badge>
                             )}
                             {employee.status === 'completed' && (
-                              <Badge variant="secondary">
+                              <Badge variant="secondary" className="text-xs">
                                 <CheckCircle className="h-3 w-3 mr-1" />
                                 Completed
                               </Badge>
@@ -844,7 +863,7 @@ export default function PayrollModule() {
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" className="flex-shrink-0">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -908,39 +927,39 @@ export default function PayrollModule() {
                     </div>
 
                     {/* Pay Agreement & Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Pay Rate</p>
-                        <p className="font-semibold">
+                        <p className="text-xs md:text-sm text-muted-foreground">Pay Rate</p>
+                        <p className="font-semibold text-sm md:text-base">
                           KES {employee.payRate.toLocaleString()}
-                          <span className="text-xs text-muted-foreground">
-                            /{employee.payFrequency}
+                          <span className="text-xs text-muted-foreground block sm:inline">
+                            <span className="hidden sm:inline">/</span>{employee.payFrequency}
                           </span>
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Pending</p>
-                        <p className="font-semibold text-orange-600">
+                        <p className="text-xs md:text-sm text-muted-foreground">Pending</p>
+                        <p className="font-semibold text-sm md:text-base text-orange-600">
                           KES {employee.pendingAmount.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Total Paid</p>
-                        <p className="font-semibold text-green-600">
+                        <p className="text-xs md:text-sm text-muted-foreground">Total Paid</p>
+                        <p className="font-semibold text-sm md:text-base text-green-600">
                           KES {employee.totalPaid.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Performance</p>
-                        <p className="font-semibold flex items-center">
-                          <Star className="h-4 w-4 mr-1 text-yellow-500 fill-yellow-500" />
-                          {employee.performanceRating}/5.0
+                        <p className="text-xs md:text-sm text-muted-foreground">Performance</p>
+                        <p className="font-semibold text-sm md:text-base flex items-center">
+                          <Star className="h-3 w-3 md:h-4 md:w-4 mr-1 text-yellow-500 fill-yellow-500" />
+                          {employee.performanceRating}/5
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Disputes</p>
+                        <p className="text-xs md:text-sm text-muted-foreground">Disputes</p>
                         <p
-                          className={`font-semibold ${employee.disputes > 0 ? 'text-red-600' : 'text-green-600'}`}
+                          className={`font-semibold text-sm md:text-base ${employee.disputes > 0 ? 'text-red-600' : 'text-green-600'}`}
                         >
                           {employee.disputes}
                         </p>
@@ -949,28 +968,30 @@ export default function PayrollModule() {
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap items-center gap-2 pt-4 border-t">
-                      <Button size="sm">
-                        <Send className="h-4 w-4 mr-2" />
-                        Pay Now
+                      <Button size="sm" className="flex-1 sm:flex-initial">
+                        <Send className="h-4 w-4 mr-1 md:mr-2" />
+                        <span className="hidden sm:inline">Pay Now</span>
+                        <span className="sm:hidden">Pay</span>
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        Advance Payment (50%)
+                      <Button variant="outline" size="sm" className="flex-1 sm:flex-initial">
+                        <DollarSign className="h-4 w-4 mr-1 md:mr-2" />
+                        <span className="hidden md:inline">Advance Payment (50%)</span>
+                        <span className="md:hidden">Advance</span>
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="hidden sm:inline-flex">
                         <Calendar className="h-4 w-4 mr-2" />
                         Schedule
                       </Button>
                       {employee.disputes > 0 && (
-                        <Button variant="destructive" size="sm">
-                          <AlertCircle className="h-4 w-4 mr-2" />
-                          View Dispute
+                        <Button variant="destructive" size="sm" className="flex-1 sm:flex-initial">
+                          <AlertCircle className="h-4 w-4 mr-1 md:mr-2" />
+                          Dispute
                         </Button>
                       )}
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="ml-auto"
+                        className="w-full sm:w-auto sm:ml-auto"
                         onClick={() =>
                           setExpandedEmployee(
                             expandedEmployee === employee.id ? null : employee.id
@@ -980,12 +1001,12 @@ export default function PayrollModule() {
                         {expandedEmployee === employee.id ? (
                           <>
                             <ChevronUp className="h-4 w-4 mr-2" />
-                            Less
+                            Less Details
                           </>
                         ) : (
                           <>
                             <ChevronDown className="h-4 w-4 mr-2" />
-                            More
+                            More Details
                           </>
                         )}
                       </Button>
@@ -1248,30 +1269,35 @@ export default function PayrollModule() {
                     </div>
                   )}
 
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    <Button className="flex-1">
+                  <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-2">
+                    <Button className="flex-1 min-w-[140px]" size="sm">
                       <CheckCircle className="h-4 w-4 mr-2" />
-                      Approve & Release Funds
+                      <span className="hidden md:inline">Approve & Release Funds</span>
+                      <span className="md:hidden">Approve & Pay</span>
                     </Button>
                     <Button
                       variant="outline"
-                      className="flex-1"
+                      className="flex-1 min-w-[140px]"
+                      size="sm"
                       onClick={() => handleViewEvidence(dispute)}
                     >
                       <FileText className="h-4 w-4 mr-2" />
-                      View All Evidence
+                      <span className="hidden md:inline">View All Evidence</span>
+                      <span className="md:hidden">View Evidence</span>
                     </Button>
                     <Button
                       variant="outline"
-                      className="flex-1"
+                      className="flex-1 min-w-[140px]"
+                      size="sm"
                       onClick={() => handleSubmitCounterEvidence(dispute)}
                     >
                       <Upload className="h-4 w-4 mr-2" />
-                      Submit Counter-Evidence
+                      <span className="hidden md:inline">Submit Counter-Evidence</span>
+                      <span className="md:hidden">Submit Evidence</span>
                     </Button>
-                    <Button variant="destructive" className="flex-1">
+                    <Button variant="destructive" className="flex-1 min-w-[140px]" size="sm">
                       <XCircle className="h-4 w-4 mr-2" />
-                      Reject Dispute
+                      Reject
                     </Button>
                   </div>
                 </CardContent>
