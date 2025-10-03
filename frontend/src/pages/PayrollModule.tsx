@@ -31,6 +31,7 @@ import {
   PauseCircle,
   UserCheck,
   Zap,
+  Eye,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -131,8 +132,13 @@ export default function PayrollModule() {
   const [showAddProject, setShowAddProject] = useState(false)
   const [showBulkUpload, setShowBulkUpload] = useState(false)
   const [showRaiseDispute, setShowRaiseDispute] = useState(false)
+  const [showViewEvidence, setShowViewEvidence] = useState(false)
+  const [showSubmitEvidence, setShowSubmitEvidence] = useState(false)
+  const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null)
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null)
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
+  const [counterEvidenceFiles, setCounterEvidenceFiles] = useState<File[]>([])
+  const [counterEvidenceNotes, setCounterEvidenceNotes] = useState('')
 
   // Form states
   const [newEmployee, setNewEmployee] = useState({
@@ -416,6 +422,41 @@ export default function PayrollModule() {
     // Implementation for adding project
     console.log('Adding project:', newProject)
     setShowAddProject(false)
+  }
+
+  const handleViewEvidence = (dispute: Dispute) => {
+    setSelectedDispute(dispute)
+    setShowViewEvidence(true)
+  }
+
+  const handleSubmitCounterEvidence = (dispute: Dispute) => {
+    setSelectedDispute(dispute)
+    setShowSubmitEvidence(true)
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files)
+      setCounterEvidenceFiles((prev) => [...prev, ...filesArray])
+    }
+  }
+
+  const handleRemoveFile = (index: number) => {
+    setCounterEvidenceFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleSubmitCounterEvidenceForm = () => {
+    // Implementation for submitting counter-evidence
+    console.log('Submitting counter-evidence:', {
+      disputeId: selectedDispute?.id,
+      files: counterEvidenceFiles,
+      notes: counterEvidenceNotes,
+    })
+    // Reset form
+    setCounterEvidenceFiles([])
+    setCounterEvidenceNotes('')
+    setShowSubmitEvidence(false)
+    alert('Counter-evidence submitted successfully!')
   }
 
   return (
@@ -1212,11 +1253,19 @@ export default function PayrollModule() {
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Approve & Release Funds
                     </Button>
-                    <Button variant="outline" className="flex-1">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => handleViewEvidence(dispute)}
+                    >
                       <FileText className="h-4 w-4 mr-2" />
                       View All Evidence
                     </Button>
-                    <Button variant="outline" className="flex-1">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => handleSubmitCounterEvidence(dispute)}
+                    >
                       <Upload className="h-4 w-4 mr-2" />
                       Submit Counter-Evidence
                     </Button>
@@ -1507,6 +1556,352 @@ export default function PayrollModule() {
                 </Button>
                 <Button className="flex-1" onClick={handleAddProject}>
                   Create Project
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* View Evidence Modal */}
+      {showViewEvidence && selectedDispute && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="flex items-center">
+                    <FileText className="h-5 w-5 mr-2" />
+                    All Evidence - Dispute #{selectedDispute.id}
+                  </CardTitle>
+                  <CardDescription>
+                    Review all submitted evidence for this dispute
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowViewEvidence(false)
+                    setSelectedDispute(null)
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Dispute Summary */}
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Raised By</p>
+                    <p className="font-medium">
+                      {selectedDispute.raisedBy === 'employee'
+                        ? selectedDispute.employeeName
+                        : 'You (Employer)'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Date Raised</p>
+                    <p className="font-medium">
+                      {new Date(selectedDispute.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Amount</p>
+                    <p className="font-medium">KES {selectedDispute.amount.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <Badge className={getDisputeStatusColor(selectedDispute.status)}>
+                      {selectedDispute.status}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className="text-sm text-muted-foreground">Reason</p>
+                  <p className="font-medium mt-1">{selectedDispute.reason}</p>
+                </div>
+              </div>
+
+              {/* Employee Evidence */}
+              <div>
+                <h3 className="font-semibold mb-3 flex items-center">
+                  <Shield className="h-4 w-4 mr-2 text-blue-600" />
+                  Employee Evidence
+                </h3>
+                {selectedDispute.evidence && selectedDispute.evidence.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedDispute.evidence.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <FileText className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{file}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Uploaded on {new Date(selectedDispute.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8 bg-muted rounded-lg">
+                    No evidence submitted yet
+                  </p>
+                )}
+              </div>
+
+              {/* Employer Counter-Evidence (Mock) */}
+              <div>
+                <h3 className="font-semibold mb-3 flex items-center">
+                  <Shield className="h-4 w-4 mr-2 text-orange-600" />
+                  Your Counter-Evidence
+                </h3>
+                <div className="space-y-3">
+                  {/* Mock counter-evidence */}
+                  <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">payment_confirmation.pdf</p>
+                        <p className="text-sm text-muted-foreground">Uploaded yesterday</p>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline */}
+              <div>
+                <h3 className="font-semibold mb-3">Dispute Timeline</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">Dispute Raised</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(selectedDispute.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                      <Shield className="h-4 w-4 text-yellow-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">Funds Moved to Escrow</p>
+                      <p className="text-sm text-muted-foreground">
+                        KES {selectedDispute.escrowAmount?.toLocaleString()} held
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowViewEvidence(false)
+                    setSelectedDispute(null)
+                  }}
+                >
+                  Close
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    setShowViewEvidence(false)
+                    handleSubmitCounterEvidence(selectedDispute)
+                  }}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Submit Counter-Evidence
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Submit Counter-Evidence Modal */}
+      {showSubmitEvidence && selectedDispute && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="flex items-center">
+                    <Upload className="h-5 w-5 mr-2" />
+                    Submit Counter-Evidence
+                  </CardTitle>
+                  <CardDescription>
+                    Upload documents and provide details to support your case
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowSubmitEvidence(false)
+                    setSelectedDispute(null)
+                    setCounterEvidenceFiles([])
+                    setCounterEvidenceNotes('')
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Dispute Info */}
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Responding to Dispute</p>
+                <p className="font-semibold text-lg">#{selectedDispute.id}</p>
+                <p className="text-sm mt-1">{selectedDispute.reason}</p>
+              </div>
+
+              {/* File Upload */}
+              <div className="space-y-3">
+                <Label>Upload Supporting Documents</Label>
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="evidence-upload"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  />
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="font-medium mb-2">Drop files here or click to browse</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Supported: PDF, Images, Word documents
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById('evidence-upload')?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Choose Files
+                  </Button>
+                </div>
+
+                {/* Uploaded Files List */}
+                {counterEvidenceFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Uploaded Files ({counterEvidenceFiles.length})</p>
+                    {counterEvidenceFiles.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-4 w-4 text-blue-600" />
+                          <div>
+                            <p className="font-medium text-sm">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {(file.size / 1024).toFixed(2)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveFile(idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Additional Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="evidence-notes">Additional Notes / Explanation</Label>
+                <textarea
+                  id="evidence-notes"
+                  className="w-full border rounded-md p-3 min-h-[120px]"
+                  placeholder="Provide detailed explanation of your counter-evidence..."
+                  value={counterEvidenceNotes}
+                  onChange={(e) => setCounterEvidenceNotes(e.target.value)}
+                />
+              </div>
+
+              {/* Info Box */}
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200">
+                <div className="flex items-start space-x-2">
+                  <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div className="flex-1 text-sm">
+                    <p className="font-medium text-blue-900 dark:text-blue-400 mb-1">
+                      Important Information
+                    </p>
+                    <ul className="text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+                      <li>All evidence will be reviewed by the dispute resolution team</li>
+                      <li>Make sure documents are clear and legible</li>
+                      <li>Include payment confirmations, timesheets, or communication records</li>
+                      <li>The employee will be able to view your counter-evidence</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowSubmitEvidence(false)
+                    setSelectedDispute(null)
+                    setCounterEvidenceFiles([])
+                    setCounterEvidenceNotes('')
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleSubmitCounterEvidenceForm}
+                  disabled={counterEvidenceFiles.length === 0 && !counterEvidenceNotes.trim()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Submit Evidence
                 </Button>
               </div>
             </CardContent>
